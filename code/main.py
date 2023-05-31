@@ -12,20 +12,89 @@ train_files, val_files = data_dicts[:-5], data_dicts[-5:]
 #Load data transforms
 from transforms import train_transforms
 from transforms import val_transforms
+from monai.data import PatchDataset
 
-check_ds = Dataset(data=val_files, transform=val_transforms)
-check_loader = DataLoader(check_ds, batch_size=1)
-check_data = first(check_loader)
-image, label = (check_data["image"][0][0], check_data["label"][0][0])
-print(f"image shape: {image.shape}, label shape: {label.shape}")
-# plot the slice [:, :, 80]
-plt.figure("check", (12, 6))
+## view sample of data
+#ds_2d = Dataset(data = val_files, transform = val_transforms)
+#check_loader = DataLoader(ds_2d, batch_size=1)
+#check_data = first(check_loader)
+#image, label = (check_data["image"][0][0], check_data["label"][0][0])
+#print(f"image shape: {image.shape}, label shape: {label.shape}")
+#plt.figure("check", (12, 6))
+#plt.subplot(1, 2, 1)
+#plt.title("image")
+#plt.imshow(image, cmap="gray")
+#plt.subplot(1, 2, 2)
+#plt.title("label")
+#plt.imshow(label)
+#plt.show()
+
+#check_train_2d = Dataset(data = train_files, transform = train_transforms)
+#check_train_loader = DataLoader(check_train_2d, batch_size=1)
+#check_data = first(check_train_loader)
+#image, label = (check_data["image"][0][0], check_data["label"][0][0])
+#print(f"image shape: {image.shape}, label shape: {label.shape}")
+#plt.figure("check", (12, 6))
+#plt.subplot(1, 2, 1)
+#plt.title("image")
+#plt.imshow(image, cmap="gray")
+#plt.subplot(1, 2, 2)
+#plt.title("label")
+#plt.imshow(label)
+#plt.show()
+
+
+train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=1)
+train_loader = DataLoader(train_ds, batch_size=5, shuffle=True, num_workers=1)
+
+val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=1)
+val_loader = DataLoader(val_ds, batch_size=5, num_workers=1)
+
+
+# standard PyTorch program style: create UNet, DiceLoss and Adam optimizer
+device = torch.device("cuda:0")
+print("Device:", device)
+model = UNet(
+    spatial_dims=2,
+    in_channels=1,
+    out_channels=3,
+    channels=(16, 32, 64, 128, 256),
+    strides=(2, 2, 2, 2),
+    num_res_units=2,
+    norm=Norm.BATCH,
+).to(device)
+loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+optimizer = torch.optim.Adam(model.parameters(), 1e-4)
+dice_metric = DiceMetric(include_background=False, reduction="mean")
+print("Created model, loss, optim ,dice")
+
+#Training loop
+from training_loop import *
+epoch_loss_values, metric_values = training_loop(
+                model = model,
+                train_loader = train_loader,
+                val_loader = val_loader,
+                optimizer = optimizer,
+                loss_function = loss_function,
+                dice_metric = dice_metric,
+                device = device,
+                max_epochs = 1,
+                )
+
+#Plots
+plt.figure("train", (12, 6))
 plt.subplot(1, 2, 1)
-plt.title("image")
-plt.imshow(image[:, :, 15], cmap="gray")
+plt.title("Epoch Average Loss")
+x = [i + 1 for i in range(len(epoch_loss_values))]
+y = epoch_loss_values
+plt.xlabel("epoch")
+plt.plot(x, y)
 plt.subplot(1, 2, 2)
-plt.title("label")
-plt.imshow(label[:, :, 15])
+plt.title("Val Mean Dice")
+x = [2 * (i + 1) for i in range(len(metric_values))] #x = [val_interval * (i + 1) for i in range(len(metric_values))]
+y = metric_values
+plt.xlabel("epoch")
+plt.plot(x, y)
 plt.show()
 
-print("hello i am a new change")
+

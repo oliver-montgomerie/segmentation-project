@@ -28,4 +28,6 @@ import tempfile
 import shutil
 import os
 import glob
+import numpy as np
+import nibabel as nib
 

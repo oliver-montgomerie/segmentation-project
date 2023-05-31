@@ -1,4 +1,5 @@
 from imports import *
+from choose_slice import SliceWithMaxNumLabelsd
 
 train_transforms = Compose(
     [
@@ -15,16 +16,18 @@ train_transforms = Compose(
         CropForegroundd(keys=["image", "label"], source_key="image"),
         Orientationd(keys=["image", "label"], axcodes="RAS"),
         Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
-        RandCropByPosNegLabeld(
-            keys=["image", "label"],
-            label_key="label",
-            spatial_size=(96, 96, 96),
-            pos=1,
-            neg=1,
-            num_samples=4,
-            image_key="image",
-            image_threshold=0,
-        ),
+        SliceWithMaxNumLabelsd(["image", "label"], "label"),
+        #RandCropByPosNegLabeld(
+        #    keys=["image", "label"],
+        #    label_key="label",
+        #    spatial_size=(96, 96, 96),
+        #    pos=1,
+        #    neg=1,
+        #    num_samples=4,
+        #    image_key="image",
+        #    image_threshold=0,
+        #),
+
         # user can also add other random transforms
         # RandAffined(
         #     keys=['image', 'label'],
@@ -50,5 +53,6 @@ val_transforms = Compose(
         CropForegroundd(keys=["image", "label"], source_key="image"),
         Orientationd(keys=["image", "label"], axcodes="RAS"),
         Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
+        SliceWithMaxNumLabelsd(["image", "label"], "label"),
     ]
 )
