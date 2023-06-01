@@ -17,6 +17,7 @@ from monai.transforms import (
 from monai.handlers.utils import from_engine
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
+from monai.networks.utils import one_hot
 from monai.metrics import DiceMetric
 from monai.losses import DiceLoss
 from monai.inferers import sliding_window_inference

@@ -4,12 +4,15 @@ def main():
     #print_config()
 
     #Data loading
-    data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"
+    #data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"
+    data_dir = "/data/datasets/Liver/LiTS2017"
 
-    train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
-    train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
+    train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
+    train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
+    #train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
+    #train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
-    train_files, val_files = data_dicts[:-5], data_dicts[-5:]
+    train_files, val_files = data_dicts[0:5], data_dicts[-5:]
 
     #Load data transforms
     from transforms import train_transforms
@@ -86,7 +89,7 @@ def main():
                     loss_function = loss_function,
                     dice_metric = dice_metric,
                     device = device,
-                    max_epochs = 4,
+                    max_epochs = 2,
                     )
 
     #Plots

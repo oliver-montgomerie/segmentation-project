@@ -59,6 +59,7 @@ def training_loop(model,
 
                     #todo: labels to onehot? or output argmax
                     # compute metric for current iteration
+                    val_labels = one_hot(val_labels, num_classes=3, dim=0)
                     dice_metric(y_pred=val_outputs, y=val_labels)
 
                 # aggregate the final mean dice result
