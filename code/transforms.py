@@ -1,5 +1,6 @@
 from imports import *
 from choose_slice import SliceWithMaxNumLabelsd
+from choose_slice import choose_tumour
 from choose_slice import print_img_size
 
 train_transforms = Compose(

@@ -15,6 +15,21 @@ class SliceWithMaxNumLabelsd(MapTransform):
         for key in self.keys:
             d[key] = d[key][..., _slice]
         return d
+    
+
+class choose_tumour(MapTransform):
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        d = dict(data)
+        lb = d['label']
+        lb[lb==1] = 0
+        lb[lb==2] = 1
+        d['label'] = lb
+        
+        return d    
+
 
 class print_img_size(MapTransform):
     def __init__(self):
@@ -22,7 +37,8 @@ class print_img_size(MapTransform):
 
     def __call__(self, data):
         d = dict(data)
-        print(d['image'].shape)
+        print("Image shape", d['image'].shape)
+        print("Label shape", d['label'].shape)
         return d
 
 

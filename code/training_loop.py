@@ -9,7 +9,8 @@ def training_loop(model,
                   device,
                   max_epochs = 1,
                   ):
-    root_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project/saved_models"
+    #root_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project/saved_models"
+    model_dir = "/home/omo23/Documents/segmentation-project/saved-models"
     val_interval = 2
     best_metric = -1
     best_metric_epoch = -1
@@ -17,6 +18,8 @@ def training_loop(model,
     metric_values = []
     post_pred = Compose([AsDiscrete(argmax=True, to_onehot=2)])
     post_label = Compose([AsDiscrete(to_onehot=2)])
+
+    arg_max = AsDiscrete(argmax=True, to_onehot=None, threshold=None, rounding=None,)
 
     for epoch in range(max_epochs):
         print("-" * 10)
@@ -51,15 +54,10 @@ def training_loop(model,
                         val_data["label"].to(device),
                     )
                     val_outputs = model(val_inputs)
-                    #roi_size = (160, 160, 160)
-                    #sw_batch_size = 4
-                    #val_outputs = sliding_window_inference(val_inputs, roi_size, sw_batch_size, model)
-                    #val_outputs = [post_pred(i) for i in decollate_batch(val_outputs)]
-                    #val_labels = [post_label(i) for i in decollate_batch(val_labels)]
+                    val_outputs = predict_segmentation(val_outputs, mutually_exclusive=True)
+                    val_outputs = one_hot(val_outputs, num_classes=3, dim=1)
 
-                    #todo: labels to onehot? or output argmax
-                    # compute metric for current iteration
-                    val_labels = one_hot(val_labels, num_classes=3, dim=0)
+                    val_labels = one_hot(val_labels, num_classes=3, dim=1)
                     dice_metric(y_pred=val_outputs, y=val_labels)
 
                 # aggregate the final mean dice result
@@ -71,7 +69,7 @@ def training_loop(model,
                 if metric > best_metric:
                     best_metric = metric
                     best_metric_epoch = epoch + 1
-                    torch.save(model.state_dict(), os.path.join(root_dir, "best_metric_model.pth"))
+                    torch.save(model.state_dict(), os.path.join(model_dir, "best_metric_model.pth"))
                     print("saved new best metric model")
                 print(
                     f"current epoch: {epoch + 1} current mean dice: {metric:.4f}"

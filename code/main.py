@@ -7,31 +7,34 @@ def main():
     #data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"
     data_dir = "/data/datasets/Liver/LiTS2017"
 
+    no_files = 131
     train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
     train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
     #train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
     #train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
-    train_files, val_files = data_dicts[0:5], data_dicts[-5:]
+    train_files, val_files, test_files = data_dicts[0:3], data_dicts[3:6], data_dicts[-3:]
+    #train_files, val_files, test_files = data_dicts[0:(3*no_files//5)], data_dicts[(3*no_files//5):(4*no_files//5)], data_dicts[-(no_files // 5):]
+    print("Number of train files:", len(train_files), "Number of val files:", len(val_files), "Number of test files:", len(test_files))
 
     #Load data transforms
     from transforms import train_transforms
     from transforms import val_transforms
 
-    ## view sample of data
-    #check_train_2d = Dataset(data = train_files, transform = train_transforms)
-    #check_train_loader = DataLoader(check_train_2d, batch_size=1)
-    #check_data = first(check_train_loader)
-    #image, label = (check_data["image"][0][0], check_data["label"][0][0])
-    #print(f"image shape: {image.shape}, label shape: {label.shape}")
-    #plt.figure("check", (12, 6))
-    #plt.subplot(1, 2, 1)
-    #plt.title("image")
-    #plt.imshow(image, cmap="gray")
-    #plt.subplot(1, 2, 2)
-    #plt.title("label")
-    #plt.imshow(label)
-    #plt.show()
+    # ## view sample of data
+    # check_train_2d = Dataset(data = train_files, transform = train_transforms)
+    # check_train_loader = DataLoader(check_train_2d, batch_size=1)
+    # check_data = first(check_train_loader)
+    # image, label = (check_data["image"][0][0], check_data["label"][0][0])
+    # print(f"image shape: {image.shape}, label shape: {label.shape}")
+    # plt.figure("check", (12, 6))
+    # plt.subplot(1, 2, 1)
+    # plt.title("image")
+    # plt.imshow(image, cmap="gray")
+    # plt.subplot(1, 2, 2)
+    # plt.title("label")
+    # plt.imshow(label)
+    # plt.show()
 
     ##Load cache dataset
     #try:
@@ -107,7 +110,6 @@ def main():
     plt.xlabel("epoch")
     plt.plot(x, y)
     plt.show()
-
 
 if __name__ == "__main__":
     main()
