@@ -16,6 +16,15 @@ class SliceWithMaxNumLabelsd(MapTransform):
             d[key] = d[key][..., _slice]
         return d
 
+class print_img_size(MapTransform):
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        d = dict(data)
+        print(d['image'].shape)
+        return d
+
 
 # Save slice
 class SaveSliced(MapTransform):

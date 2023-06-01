@@ -50,11 +50,14 @@ def training_loop(model,
                         val_data["image"].to(device),
                         val_data["label"].to(device),
                     )
-                    roi_size = (160, 160, 160)
-                    sw_batch_size = 4
-                    val_outputs = sliding_window_inference(val_inputs, roi_size, sw_batch_size, model)
-                    val_outputs = [post_pred(i) for i in decollate_batch(val_outputs)]
-                    val_labels = [post_label(i) for i in decollate_batch(val_labels)]
+                    val_outputs = model(val_inputs)
+                    #roi_size = (160, 160, 160)
+                    #sw_batch_size = 4
+                    #val_outputs = sliding_window_inference(val_inputs, roi_size, sw_batch_size, model)
+                    #val_outputs = [post_pred(i) for i in decollate_batch(val_outputs)]
+                    #val_labels = [post_label(i) for i in decollate_batch(val_labels)]
+
+                    #todo: labels to onehot? or output argmax
                     # compute metric for current iteration
                     dice_metric(y_pred=val_outputs, y=val_labels)
 

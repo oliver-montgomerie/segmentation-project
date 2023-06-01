@@ -30,16 +30,33 @@ def main():
     #plt.imshow(label)
     #plt.show()
 
-    #check if cache saved
-    #yes then load
-    #no then cache it as below
-    #https://stackoverflow.com/questions/6568007/how-do-i-save-and-restore-multiple-variables-in-python
+    ##Load cache dataset
+    #try:
+    #    with open('train_cache_files.pkl') as f: 
+    #        train_ds = pickle.load(f)
+    #except FileNotFoundError:
+    #    print("train cached data not found. creating now")
+    #    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=1)
+    #    print("Cached data, now saving")
+    #    with open('train_cache_files.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
+    #        pickle.dump([train_ds], f)
 
-    #dataset and dataloader
-    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=1)
+    train_ds = Dataset(data=train_files, transform=train_transforms)
+
+    #try:
+    #    with open('val_cache_files.pkl') as f: 
+    #        val_ds = pickle.load(f)
+    #except FileNotFoundError:
+    #    print("val cached data not found. creating now")
+    #    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=1)
+    #    print("Cached data, now saving")
+    #    with open('val_cache_files.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
+    #        pickle.dump([val_ds], f)
+
+    val_ds = Dataset(data=val_files, transform=val_transforms)
+
+    #dataloaders
     train_loader = DataLoader(train_ds, batch_size=5, shuffle=True, num_workers=1)
-
-    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=1)
     val_loader = DataLoader(val_ds, batch_size=5, num_workers=1)
 
     # standard PyTorch program style: create UNet, DiceLoss and Adam optimizer
@@ -69,7 +86,7 @@ def main():
                     loss_function = loss_function,
                     dice_metric = dice_metric,
                     device = device,
-                    max_epochs = 1,
+                    max_epochs = 4,
                     )
 
     #Plots

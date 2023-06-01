@@ -1,5 +1,6 @@
 from imports import *
 from choose_slice import SliceWithMaxNumLabelsd
+from choose_slice import print_img_size
 
 train_transforms = Compose(
     [
@@ -13,20 +14,16 @@ train_transforms = Compose(
             b_max=1.0,
             clip=True,
         ),
-        #CropForegroundd(keys=["image", "label"], source_key="image"),
         Orientationd(keys=["image", "label"], axcodes="RAS"),
-        Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
+        #Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
+        #print_img_size(),
         SliceWithMaxNumLabelsd(["image", "label"], "label"),
-        #RandCropByPosNegLabeld(
-        #    keys=["image", "label"],
-        #    label_key="label",
-        #    spatial_size=(96, 96, 96),
-        #    pos=1,
-        #    neg=1,
-        #    num_samples=4,
-        #    image_key="image",
-        #    image_threshold=0,
-        #),
+        #print_img_size(),
+
+        #CropForegroundd(keys=["image", "label"], source_key="image"),
+        #print_img_size(),
+        #PadListDataCollate(),
+        #print_img_size(),
 
         # user can also add other random transforms
         # RandAffined(
@@ -50,9 +47,8 @@ val_transforms = Compose(
             b_max=1.0,
             clip=True,
         ),
-        #CropForegroundd(keys=["image", "label"], source_key="image"),
         Orientationd(keys=["image", "label"], axcodes="RAS"),
-        Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
+        #Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
         SliceWithMaxNumLabelsd(["image", "label"], "label"),
     ]
 )
