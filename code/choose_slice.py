@@ -51,8 +51,7 @@ class SaveSliced(MapTransform):
     def __call__(self, data):
         d = {}
         for key in self.keys:
-            fname = os.path.basename(
-                data[key + "_meta_dict"]["filename_or_obj"])
+            fname = os.path.basename(data[key + "_meta_dict"]["filename_or_obj"])
             path = os.path.join(self.path, key, fname)
             nib.save(nib.Nifti1Image(data[key], np.eye(4)), path)
             d[key] = path

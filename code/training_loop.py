@@ -8,9 +8,10 @@ def training_loop(model,
                   dice_metric,
                   device,
                   max_epochs = 1,
+                  model_path_and_name = "",
                   ):
     #root_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project/saved_models"
-    model_dir = "/home/omo23/Documents/segmentation-project/saved-models"
+    #model_dir = "/home/omo23/Documents/segmentation-project/saved-models"
     val_interval = 2
     best_metric = -1
     best_metric_epoch = -1
@@ -69,7 +70,7 @@ def training_loop(model,
                 if metric > best_metric:
                     best_metric = metric
                     best_metric_epoch = epoch + 1
-                    torch.save(model.state_dict(), os.path.join(model_dir, "best_metric_model.pth"))
+                    torch.save(model.state_dict(), model_path_and_name) #os.path.join(model_dir, "best_metric_model.pth"))
                     print("saved new best metric model")
                 print(
                     f"current epoch: {epoch + 1} current mean dice: {metric:.4f}"

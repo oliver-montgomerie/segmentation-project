@@ -1,7 +1,7 @@
 from imports import *
 
-def check_model_output(model, model_path, data_loader, device):
-    arg_max = AsDiscrete(argmax=True, to_onehot=None, threshold=None, rounding=None,)
+def check_model_output(model, save_path, data_loader, device):
+    model_path = os.path.join(save_path, "best_metric_model.pth")
     model.load_state_dict(torch.load(model_path))
     model.eval()
     with torch.no_grad():
@@ -28,11 +28,13 @@ def check_model_output(model, model_path, data_loader, device):
                 plt.subplot(1, 3, 3)
                 plt.title(f"output")
                 plt.imshow(val_outputs[i,0,:,:].detach().cpu())
-                plt.show()
+
+                fname = "img" + str(i) + ".png"
+                plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
 
 
 data_dir = "/data/datasets/Liver/LiTS2017"
-model_path = "/home/omo23/Documents/segmentation-project/saved-models/best_metric_model.pth"
+save_path = "/home/omo23/Documents/segmentation-project/saved-tests/" + "new-test/"
 
 train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
 train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
@@ -55,4 +57,4 @@ model = UNet(
         norm=Norm.BATCH,
     ).to(device)
 
-check_model_output(model, model_path, test_loader, device)
+check_model_output(model, save_path, test_loader, device)

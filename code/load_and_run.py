@@ -1,75 +1,48 @@
 from imports import *
 
-def main():
-    #print_config()
+#todo: make txt save data in the folder
+# add batch size and epochs along with the #train /#test
 
+def load_and_run(tr_va_te_split=[80,10,10],
+                 save_path = "",
+                 ):
+    num_workers = 16
     #Data loading
     #data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"
     data_dir = "/data/datasets/Liver/LiTS2017"
 
     no_files = 131
+    number_of_training = (tr_va_te_split[0] * no_files) // 100
+    number_of_validation = (tr_va_te_split[1] * no_files) // 100
+    number_of_test = no_files - number_of_training - number_of_validation
+    
     train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
     train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
     #train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
     #train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
-    #train_files, val_files, test_files = data_dicts[0:3], data_dicts[3:6], data_dicts[-3:]
-    train_files, val_files, test_files = data_dicts[0:(3*no_files//5)], data_dicts[(3*no_files//5):(4*no_files//5)], data_dicts[(4*no_files//5):]
+    train_files = data_dicts[0:number_of_training]
+    val_files = data_dicts[number_of_training:number_of_validation]
+    test_files = data_dicts[-number_of_test:]
     print("Number of train files:", len(train_files), "Number of val files:", len(val_files), "Number of test files:", len(test_files))
 
     #Load data transforms
     from transforms import train_transforms
     from transforms import val_transforms
 
-    # ## view sample of data
-    # check_train_2d = Dataset(data = train_files, transform = train_transforms)
-    # check_train_loader = DataLoader(check_train_2d, batch_size=1)
-    # check_data = first(check_train_loader)
-    # image, label = (check_data["image"][0][0], check_data["label"][0][0])
-    # print(f"image shape: {image.shape}, label shape: {label.shape}")
-    # plt.figure("check", (12, 6))
-    # plt.subplot(1, 2, 1)
-    # plt.title("image")
-    # plt.imshow(image, cmap="gray")
-    # plt.subplot(1, 2, 2)
-    # plt.title("label")
-    # plt.imshow(label)
-    # plt.show()
+    ###datasets
+    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
+    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
+    test_ds = Dataset(data=test_files, transform=val_transforms)
 
-    # #Load cache dataset ##doesnt work
-    # try:
-    #    with open('train_cache_files.pkl') as f: 
-    #        train_ds = pickle.load(f)
-    # except FileNotFoundError:
-    #    print("train cached data not found. creating now")
-    #    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=16)
-    #    print("Cached data, now saving")
-    #    with open('train_cache_files.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
-    #        pickle.dump([train_ds], f)
-
-    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=16)
-    #train_ds = Dataset(data=train_files, transform=train_transforms)
-
-    # try: ##doesnt work
-    #    with open('val_cache_files.pkl') as f: 
-    #        val_ds = pickle.load(f)
-    # except FileNotFoundError:
-    #    print("val cached data not found. creating now")
-    #    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=16)
-    #    print("Cached data, now saving")
-    #    with open('val_cache_files.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
-    #        pickle.dump([val_ds], f)
-
-    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=16)
-    #val_ds = Dataset(data=val_files, transform=val_transforms)
-
-    #dataloaders
-    train_loader = DataLoader(train_ds, batch_size=16, shuffle=True, num_workers=16)
-    val_loader = DataLoader(val_ds, batch_size=16, num_workers=16)
+    ###dataloaders
+    train_loader = DataLoader(train_ds, batch_size=16, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_ds, batch_size=16, num_workers=num_workers)
+    test_loader = DataLoader(test_ds, batch_size=3, shuffle=True, num_workers=num_workers)
 
     # standard PyTorch program style: create UNet, DiceLoss and Adam optimizer
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print("Device:", device)
+
     model = UNet(
         spatial_dims=2,
         in_channels=1,
@@ -95,6 +68,7 @@ def main():
                     dice_metric = dice_metric,
                     device = device,
                     max_epochs = 500,
+                    model_path_and_name = os.path.join(save_path, "best_metric_model.pth"),
                     )
 
     #Plots
@@ -111,7 +85,22 @@ def main():
     y = metric_values
     plt.xlabel("epoch")
     plt.plot(x, y)
-    plt.show()
 
-if __name__ == "__main__":
-    main()
+    plt.savefig(os.path.join(save_path, "train_val_loss.png"), bbox_inches='tight')
+    
+    from check_model_output import check_model_output
+
+    check_model_output(model = model, 
+                       model_path = save_path, 
+                       data_loader = test_loader,
+                       device = device)
+
+
+load_and_run([80,10,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([70,20,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([60,30,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([50,40,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([40,50,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([30,60,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([20,70,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
+load_and_run([10,80,10],"/home/omo23/Documents/segmentation-project/saved-tests/80-10-10")
