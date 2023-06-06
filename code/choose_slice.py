@@ -1,5 +1,4 @@
 from imports import *
-from monai.transforms import MapTransform
 
 #Chooses the slice with the largest amount of label
 class SliceWithMaxNumLabelsd(MapTransform):
@@ -29,17 +28,6 @@ class choose_tumour(MapTransform):
         d['label'] = lb
         
         return d    
-
-
-class print_img_size(MapTransform):
-    def __init__(self):
-        pass
-
-    def __call__(self, data):
-        d = dict(data)
-        print("Image shape", d['image'].shape)
-        print("Label shape", d['label'].shape)
-        return d
 
 
 # Save slice
