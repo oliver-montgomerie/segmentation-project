@@ -3,6 +3,24 @@ from choose_slice import SliceWithMaxNumLabelsd
 from choose_slice import choose_tumour
 from choose_slice import print_img_size
 
+#todo: didnt add augmentations yet
+augmented_train_transforms = Compose(
+    [
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys=["image", "label"]),
+        ScaleIntensityRanged(
+            keys=["image"],
+            a_min=-200,
+            a_max=200,
+            b_min=0.0,
+            b_max=1.0,
+            clip=True,
+        ),
+        Orientationd(keys=["image", "label"], axcodes="RAS"),
+        SliceWithMaxNumLabelsd(["image", "label"], "label"),
+    ]
+)
+
 train_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
@@ -37,6 +55,24 @@ train_transforms = Compose(
 )
 
 val_transforms = Compose(
+    [
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys=["image", "label"]),
+        ScaleIntensityRanged(
+            keys=["image"],
+            a_min=-200,
+            a_max=200,
+            b_min=0.0,
+            b_max=1.0,
+            clip=True,
+        ),
+        Orientationd(keys=["image", "label"], axcodes="RAS"),
+        #Spacingd(keys=["image", "label"], pixdim=(1.5, 1.5, 2.0), mode=("bilinear", "nearest")),
+        SliceWithMaxNumLabelsd(["image", "label"], "label"),
+    ]
+)
+
+test_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys=["image", "label"]),

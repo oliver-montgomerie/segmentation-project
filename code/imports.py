@@ -26,6 +26,7 @@ from monai.data import CacheDataset, DataLoader, Dataset, decollate_batch
 from monai.config import print_config
 from monai.apps import download_and_extract
 import torch
+from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 import matplotlib.pyplot as plt
 import tempfile
 import shutil
