@@ -1,24 +1,28 @@
 from imports import *
 from choose_slice import SliceWithMaxNumLabelsd
+        
 
 class print_img_and_size(MapTransform):
     #for viewing 2d slices
-    def __init__(self):
-        pass
+    def __init__(self, title):
+        self.title = title
 
     def __call__(self, data):
         d = dict(data)
-        print("Image shape", d['image'].shape)
-        print("Label shape", d['label'].shape)
+        image = d['image'][0,:,:]
+        label = d['label'][0,:,:]
+        print("Image shape:", d['image'].shape, "Label shape:", d['label'].shape)
 
-        plt.figure("check", (12, 6))
+        plt.figure("Transform data view", (12, 6))
+        plt.suptitle(self.title)
         plt.subplot(1, 2, 1)
         plt.title("image")
-        plt.imshow(d['image'], cmap="gray")
+        plt.imshow(image, cmap="gray")
+
         plt.subplot(1, 2, 2)
         plt.title("label")
-        plt.imshow(d['label'])
-        #plt.show()
+        plt.imshow(label)
+        plt.show()
         
         return d
 
@@ -37,16 +41,16 @@ check_transforms = Compose(
         ),
         Orientationd(keys=["image", "label"], axcodes="RAS"),
         SliceWithMaxNumLabelsd(["image", "label"], "label"),
-        print_img_and_size(),
+        print_img_and_size("True Slice"),
 
         RandAxisFlipd(keys=["image", "label"], prob=1),
-        print_img_and_size(),
+        print_img_and_size("Axis flip"),
 
-        # RandRotated(keys=["image", "label"], range_x=3.14, prob=1),
-        # print_img_and_size(),
+        RandRotated(keys=["image", "label"], range_x=3.14, prob=1),
+        print_img_and_size("Rotated"),
 
-        RandZoomd(keys=["image", "label"], prob=0.1, min_zoom=0.9, max_zoom=1.1),
-        print_img_and_size(),
+        RandZoomd(keys=["image", "label"], prob=0.1, min_zoom=0.75, max_zoom=1.25),
+        print_img_and_size("Zoom"),
 
         
     ]
