@@ -19,11 +19,10 @@ def check_model_output(save_path, model, dice_metric, data_loader, device):
             one_hot_labels = one_hot(test_labels, num_classes=3, dim=1)
             dice_metric(y_pred=one_hot_out, y=one_hot_labels)
             x = dice_metric.get_buffer()
-            print(x)
 
             #plot slices
             if i == 0:
-                for j in range(3):
+                for j in range(len(data_loader)):
                     plt.figure("Comparison", (18, 6))
                     plt.suptitle(x[j][0])       
                     plt.subplot(1, 3, 1)
@@ -38,7 +37,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device):
                     plt.title(f"prediction")
                     plt.imshow(test_outputs[j,0,:,:].detach().cpu())
 
-                    fname = "Comparison-img" + str(j) + ".png"
+                    fname = "test-comparisons/img" + str(j) + ".png"
                     plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
 
         metric = dice_metric.aggregate().item()

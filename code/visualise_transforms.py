@@ -3,12 +3,12 @@ from imports import *
 
 def stuff():
     #Data loading
-    #data_dir = "/data/datasets/Liver/LiTS2017"   
-    #train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
-    #train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
-    data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"   
-    train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
-    train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
+    data_dir = "/data/datasets/Liver/LiTS2017"   
+    train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
+    train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
+    # data_dir = "C:/Users/olive/OneDrive/Desktop/Liver Files"   
+    # train_images = sorted(glob.glob(os.path.join(data_dir, "imagesTr", "*.nii")))
+    # train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
 
     check_files = data_dicts[0:1]

@@ -1,7 +1,6 @@
 from imports import *
 from choose_slice import SliceWithMaxNumLabelsd
         
-
 class print_img_and_size(MapTransform):
     #for viewing 2d slices
     def __init__(self, title):
