@@ -25,6 +25,10 @@ def stuff():
     ###dataloaders
     check_loader = DataLoader(check_ds, batch_size=1, shuffle=False, num_workers=1)
     check_data = first(check_loader)
+    check_data = first(check_loader)
+    check_data = first(check_loader)
+    check_data = first(check_loader)
+    check_data = first(check_loader)
 
     plt.show()
 

@@ -1,6 +1,6 @@
 from imports import *
 
-def check_model_output(save_path, model, dice_metric, data_loader, device):
+def check_model_output(save_path, model, dice_metric, data_loader, device, num_test_files):
     model_path = os.path.join(save_path, "best_metric_model.pth")
     model.load_state_dict(torch.load(model_path))
     model.eval()
@@ -21,10 +21,10 @@ def check_model_output(save_path, model, dice_metric, data_loader, device):
             x = dice_metric.get_buffer()
 
             #plot slices
-            if i == 0:
-                for j in range(len(data_loader)):
+            if i == 0: #should just be 1 batch. batch size = number of test data
+                for j in range(num_test_files):
                     plt.figure("Comparison", (18, 6))
-                    plt.suptitle(x[j][0])       
+                    plt.suptitle(x[j][0].item())       
                     plt.subplot(1, 3, 1)
                     plt.title(f"image")
                     plt.imshow(test_inputs[j,0,:,:].detach().cpu(), cmap="gray")

@@ -71,8 +71,8 @@ def training_loop(model,
                     torch.save(model.state_dict(), model_path_and_name) #os.path.join(model_dir, "best_metric_model.pth"))
                     print("saved new best metric model")
                 print(
-                    f"current epoch: {epoch + 1} current mean dice: {metric:.4f}"
-                    f"\nbest mean dice: {best_metric:.4f} "
+                    f"current epoch: {epoch + 1} current val mean dice: {metric:.4f}"
+                    f"\nbest val mean dice: {best_metric:.4f} "
                     f"at epoch: {best_metric_epoch}"
                 )
 

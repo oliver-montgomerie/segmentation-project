@@ -5,14 +5,18 @@ from monai.transforms import (
     EnsureChannelFirstd,
     Compose,
     CropForegroundd,
+    Flipd,
     LoadImaged,
     MapTransform,
     Orientationd,
     PadListDataCollate,
+    Rand2DElasticd,
     RandAxisFlipd,
     RandCropByPosNegLabeld,
+    RandGaussianNoised,
     RandRotated,
     RandZoomd,
+    Rotate90d,
     SaveImaged,
     ScaleIntensityRanged,
     Spacingd,
@@ -30,7 +34,7 @@ from monai.data import CacheDataset, DataLoader, Dataset, decollate_batch
 from monai.config import print_config
 from monai.apps import download_and_extract
 import torch
-from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 import matplotlib.pyplot as plt
 import tempfile
 import shutil
