@@ -1,4 +1,5 @@
 from imports import *
+#file names as img instead of 1,2,3,4
 
 def check_model_output(save_path, model, dice_metric, data_loader, device, num_test_files):
     model_path = os.path.join(save_path, "best_metric_model.pth")
@@ -38,7 +39,11 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     plt.title(f"prediction")
                     plt.imshow(test_outputs[j,0,:,:].detach().cpu())
 
-                    fname = "test-comparisons/img" + str(j) + ".png"
+                    fpath = test_data['image_meta_dict']['filename_or_obj'][j]
+                    fpath = fpath[-7:-4]
+                    if fpath[0] == "-": fpath = fpath[1:]
+                    fname = "test-comparisons/pred-" + fpath + ".png"
+                    #fname = "test-comparisons/img" + str(j) + ".png"
                     plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
                     plt.close()
 
