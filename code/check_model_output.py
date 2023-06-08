@@ -23,8 +23,9 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             #plot slices
             if i == 0: #should just be 1 batch. batch size = number of test data
                 for j in range(num_test_files):
+                    txt = "Liver dice: " + str(round(x[j][0].item(),3)) + ", Tumour dice: "+ str(round(x[j][1].item(),3))
                     plt.figure("Comparison", (18, 6))
-                    plt.suptitle(x[j][0].item())       
+                    plt.suptitle(txt)       
                     plt.subplot(1, 3, 1)
                     plt.title(f"image")
                     plt.imshow(test_inputs[j,0,:,:].detach().cpu(), cmap="gray")
@@ -39,11 +40,15 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
                     fname = "test-comparisons/img" + str(j) + ".png"
                     plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+                    plt.close()
 
-        metric = dice_metric.aggregate().item()
+        metric = dice_metric.aggregate(reduction="mean_batch")
+        #metric = dice_metric.aggregate(reduction="mean_channel").item()
         dice_metric.reset()
-        print(f"Test set mean dice: {metric:.4f}")
-    return metric
+        #print(f"Test set mean dice: {metric:.4f}")
+        print(f"Test set liver mean dice: {metric[0].item():.4f}")
+        print(f"Test set tumour mean dice: {metric[1].item():.4f}")
+    return [metric[0].item(), metric[1].item()]
 
 
 # data_dir = "/data/datasets/Liver/LiTS2017"

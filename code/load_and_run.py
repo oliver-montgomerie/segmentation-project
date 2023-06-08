@@ -1,6 +1,6 @@
 from imports import *
 
-def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000,
+def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0, number_of_epochs = 1000,
                  train_transforms = None, val_transforms = None):
 
     if not os.path.exists(save_path):
@@ -15,6 +15,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
     train_batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
+    scheduler_step_size = 25
 
     #Data loading
     data_dir = "/data/datasets/Liver/LiTS2017"   
@@ -26,14 +27,16 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
     number_of_test = (tr_va_split[2] * no_files) // 100
     number_of_validation = (tr_va_split[1] * no_files) // 100
     number_of_training = no_files - number_of_test - number_of_validation
+    number_of_training = round(number_of_training * fraction_of_data)
     
     test_files = data_dicts[-number_of_test:]
     val_files = data_dicts[-(number_of_test+number_of_validation):-number_of_test]
-    train_files = data_dicts[0:-(number_of_test+number_of_validation)]
+    train_files = data_dicts[0:number_of_training]
+    #train_files = data_dicts[0:-(number_of_test+number_of_validation)] 
 
     # train_files = data_dicts[0:1] 
     # val_files = data_dicts[1:2]
-    # test_files = data_dicts[2:5]
+    # test_files = data_dicts[2:4]
     
     print("Number of train files:", len(train_files), "Number of val files:", len(val_files), "Number of test files:", len(test_files))
 
@@ -70,7 +73,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
     loss_function = DiceLoss(to_onehot_y=True, softmax=True)
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     #scheduler = ExponentialLR(optimizer, gamma=scheduler_gamma)     #ReduceLROnPlateau
-    scheduler = StepLR(optimizer, step_size = 25, gamma=scheduler_gamma)     
+    scheduler = StepLR(optimizer, step_size = scheduler_step_size, gamma=scheduler_gamma)     
     dice_metric = DiceMetric(include_background=False, reduction="mean")
     print("Created model, loss, optim ,dice")
 
@@ -92,9 +95,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
     #check on test set
     from check_model_output import check_model_output
 
+    testset_dice_metric = DiceMetric(include_background=False, reduction="none")
+
     testset_dice = check_model_output(save_path = save_path, 
                        model = model, 
-                       dice_metric = dice_metric,
+                       dice_metric = testset_dice_metric,
                        data_loader = test_loader,
                        device = device,
                        num_test_files = len(test_files))
@@ -102,7 +107,8 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
     ### Saving Data
     os.path.join(save_path,'info.txt')
     with open(os.path.join(save_path,'info.txt'),'w') as f:
-        txt = ["Test set mean dice:", round(testset_dice,3),
+        txt = ["Test set mean liver dice:", round(testset_dice[0],3),
+               "\nTest set mean tumour dice:", round(testset_dice[1],3),
                 "\nNumber of train files:", number_of_training,
                 "\nNumber of val files:", number_of_validation,
                 "\nNumber of test files:", number_of_test,
@@ -117,6 +123,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
                 "\nlearning rate:", learning_rate,
                 "\nscheduler", type(scheduler),
                 ", scheduler gamma:", scheduler_gamma,
+                ", scheduler step size:", scheduler_step_size,
                 "\nmetric:", type(dice_metric),
                 "\nepochs:", number_of_epochs,
         ]
@@ -150,6 +157,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], number_of_epochs = 1000
 
     plt.legend(loc="upper right")
     plt.savefig(os.path.join(save_path, "train_val_loss.png"), bbox_inches='tight')
+    plt.close()
     
     print("Finished!")
 
