@@ -43,4 +43,5 @@ import glob
 import numpy as np
 import nibabel as nib
 import pickle
+from skimage.measure import label as seperate_instances
 

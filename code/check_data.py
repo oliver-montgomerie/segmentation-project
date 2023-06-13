@@ -1,6 +1,4 @@
 from imports import *
-#needs debugging
-from skimage.measure import label as number_of_regions
 
 def check_data():
     #Data loading
@@ -36,7 +34,7 @@ def check_data():
 
         tumors = test_labels[0,0,:,:]
         tumors[tumors == 1] = 0
-        seperated_labels, num_regions = number_of_regions(label_image = tumors, background=0, return_num=True, connectivity=None)
+        seperated_labels, num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
 
         print("FILE:", fpath, "NUM_TUMOR:", num_regions, "TUMOR_PIX:", num_lbl_2, "AVG TUMOR SIZE:", round(num_lbl_2/num_regions,3))
 

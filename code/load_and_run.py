@@ -108,7 +108,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     os.path.join(save_path,'info.txt')
     with open(os.path.join(save_path,'info.txt'),'w') as f:
         txt = ["Test set mean liver dice:", round(testset_dice[0],3),
-               "\nTest set mean tumour dice:", round(testset_dice[1],3),
+               "\nTest set mean tumor dice:", round(testset_dice[1],3),
                 "\nNumber of train files:", number_of_training,
                 "\nNumber of val files:", number_of_validation,
                 "\nNumber of test files:", number_of_test,

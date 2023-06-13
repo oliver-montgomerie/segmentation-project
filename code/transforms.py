@@ -90,6 +90,7 @@ class print_img_and_size(MapTransform):
         print("Image shape:", d['image'].shape, "Label shape:", d['label'].shape)
 
         plt.figure("Transform data view", (12, 6))
+        plt.axis('off')
         plt.suptitle(self.title)
         plt.subplot(1, 2, 1)
         plt.title("image")

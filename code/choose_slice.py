@@ -16,7 +16,7 @@ class SliceWithMaxNumLabelsd(MapTransform):
         return d
     
 
-class choose_tumour(MapTransform):
+class choose_tumor(MapTransform):
     def __init__(self):
         pass
 
