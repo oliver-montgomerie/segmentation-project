@@ -33,5 +33,27 @@
 # testfunc(0)
 # testfunc(3)
 
-x = 224.34
-print(round(x))
+# x = 224.34
+# print(round(x))
+
+# s= 'hi'
+# print("%7s" % s)
+# s = "%7s" % s
+# print(s)
+# fpath = "a"
+
+# print(f"FILE: {fpath:3s} ok")
+
+# x = 123.456
+# y = 12.2
+# print(f"{x:3.0f}a")
+# print(f"{y:3.0f}a")
+
+# ##write pixdimensinos
+# import nibabel as nib
+# for i in range(131):
+#     path = "/data/datasets/Liver/LiTS2017/Volumes/volume-"
+#     path += str(i) + ".nii"
+#     img = nib.load(path)
+#     #print(img.header['dim'])
+#     print(f"{i:3.0f}: {img.header['pixdim'][1]:.3f}, {img.header['pixdim'][2]:.3f}, {img.header['pixdim'][3]:.3f}")
