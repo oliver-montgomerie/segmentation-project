@@ -1,5 +1,7 @@
 from imports import *
-#needs debugging
+#doesnt work 
+#tried using monai save transform but get som errors
+
 
 def stuff():
     #Data loading
@@ -15,14 +17,11 @@ def stuff():
 
     #Load data transforms
     from transforms import load_transforms
-    from monai.transforms import SaveImage
 
     save_transforms = Compose(
         [
             load_transforms,
-            SaveImage(output_dir='/home/omo23/Documents/sliced-data', 
-                      output_postfix='slice', )
-
+            
         ]
     ).flatten()
     
@@ -39,6 +38,9 @@ def stuff():
                     test_data["label"].to(device),
                 )
         print(f"{i}/{len(check_loader)}")
+
+        # path = "/home/omo23/Documents/sliced-data"
+        # nib.save(img = , filename = )
 
 
 if __name__ == '__main__':

@@ -57,3 +57,14 @@
 #     img = nib.load(path)
 #     #print(img.header['dim'])
 #     print(f"{i:3.0f}: {img.header['pixdim'][1]:.3f}, {img.header['pixdim'][2]:.3f}, {img.header['pixdim'][3]:.3f}")
+
+# if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
+#                         tumors_detected.append(1)
+#                     else:
+#                         tumors_detected.append(0)
+import numpy as np
+x = np.array([0,0.1,0.4,0.4])
+if 1 in np.where(0.5 < x, 1, 0):
+    print(1)
+else:
+    print(0)

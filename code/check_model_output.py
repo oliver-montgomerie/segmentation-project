@@ -24,17 +24,18 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             #todo:dice func
             #todo save info
 
+            tumors_detected = []
             #split into seperate tumor instances
             for b_item in len(test_labels[0]):
                 tumors = test_labels[b_item,0,:,:]
                 tumors[tumors == 1] = 0
                 gt_seperated_tumor_labels, gt_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
-                tumors = test_outputs[n,0,:,:]
+                tumors = test_outputs[b_item,0,:,:]
                 tumors[tumors == 1] = 0
                 pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
 
                 #for each tumor find the dice score against each tumor lbl in prediction
-                tumors_detected = []
+                
                 for gt_num in gt_num_regions:   
                     individual_tumor_dice = []
                     for pred_num in pred_num_regions:
@@ -42,16 +43,16 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                         pred = np.where(pred_seperated_tumor_labels == pred_num+1, pred_seperated_tumor_labels, 0)
                         individual_tumor_dice.append(calc_dice(gt = gt, pred = pred))
                     
-                    print(individual_tumor_dice)
+                    gt_tumor_size = np.sum(gt_seperated_tumor_labels == gt_num+1)
+                    print("size n dice", gt_tumor_size, individual_tumor_dice)
+
+                    # save a structure containing tumor sizes and if they were detected or not
                     if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
-                        tumors_detected.append(1)
+                        tumors_detected.append([gt_tumor_size, 1])
                     else:
-                        tumors_detected.append(0)
+                        tumors_detected.append([gt_tumor_size, 0])
 
-            # save a structure containing tumor sizes and if they were detected or not
-
-
-
+            
             #plot slices
             x = dice_metric.get_buffer() #just has the dice values so we print it in plot
             if i == 0: #should just be 1 batch. batch size = number of test data
@@ -74,10 +75,26 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
                     fpath = test_data['image_meta_dict']['filename_or_obj'][j]
                     fpath = fpath[-7:-4]
+                    if fpath[0] == "e": fpath = fpath[2:]
                     if fpath[0] == "-": fpath = fpath[1:]
                     fname = "test-comparisons/pred-" + fpath + ".png"
                     plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
                     plt.close()
+        
+        
+        #todo: extract dice values from buffer? o
+        plt.figure("dice v avg size")
+        plt.axis('off')
+        plt.suptitle("test set dice compared to avg tumor size")
+        plt.plot()
+        plt.savefig(os.path.join(save_path, "dice v avg size"), bbox_inches='tight')
+        plt.close()
+
+        #todo: not sure this plot can make sense
+        plt.figure("detected v tumor_size")
+        plt.axis('off')
+        plt.suptitle("test set detected vs avg tumor size")
+        plt.plot()
 
         metric = dice_metric.aggregate(reduction="mean_batch") #gets the avg for liver and tumor seperately
         dice_metric.reset()
