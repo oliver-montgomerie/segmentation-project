@@ -17,6 +17,7 @@ from monai.transforms import (
     RandRotated,
     RandZoomd,
     Rotate90d,
+    ResizeWithPadOrCropd,
     SaveImaged,
     ScaleIntensityRanged,
     Spacingd,

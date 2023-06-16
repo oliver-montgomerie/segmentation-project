@@ -29,14 +29,14 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     number_of_training = no_files - number_of_test - number_of_validation
     number_of_training = round(number_of_training * fraction_of_data)
     
-    # test_files = data_dicts[-number_of_test:]
-    # val_files = data_dicts[-(number_of_test+number_of_validation):-number_of_test]
-    # train_files = data_dicts[0:number_of_training]
+    test_files = data_dicts[-number_of_test:]
+    val_files = data_dicts[-(number_of_test+number_of_validation):-number_of_test]
+    train_files = data_dicts[0:number_of_training]
     ##train_files = data_dicts[0:-(number_of_test+number_of_validation)] 
 
-    train_files = data_dicts[0:1] 
-    val_files = data_dicts[1:2]
-    test_files = data_dicts[2:4]
+    # train_files = data_dicts[0:1] 
+    # val_files = data_dicts[1:2]
+    # test_files = data_dicts[2:5]
     
     print("Number of train files:", len(train_files), "Number of val files:", len(val_files), "Number of test files:", len(test_files))
 
@@ -45,12 +45,12 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     from transforms import test_transforms
 
     ###datasets
-    # train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
-    # val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
-    # test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
-    train_ds = Dataset(data=train_files, transform=train_transforms)
-    val_ds = Dataset(data=val_files, transform=val_transforms)
-    test_ds = Dataset(data=test_files, transform=test_transforms)
+    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
+    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
+    test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+    # train_ds = Dataset(data=train_files, transform=train_transforms)
+    # val_ds = Dataset(data=val_files, transform=val_transforms)
+    # test_ds = Dataset(data=test_files, transform=test_transforms)
 
     ###dataloaders
     train_loader = DataLoader(train_ds, batch_size=train_batch_size, shuffle=True, num_workers=num_workers) #train_batch_size

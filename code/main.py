@@ -5,9 +5,9 @@ if __name__ == '__main__':
     from transforms import train_transforms, val_transforms
 
     # for testing code
-    load_and_run(save_path="/home/omo23/Documents/segmentation-project/saved-tests/test",
+    load_and_run(save_path="/home/omo23/Documents/segmentation-project/saved-tests/test2",
                 tr_va_split = [60,20,20],
-                number_of_epochs = 2,
+                number_of_epochs = 200,
                 train_transforms = train_transforms,
                 val_transforms = val_transforms)
 

@@ -49,22 +49,48 @@
 # print(f"{x:3.0f}a")
 # print(f"{y:3.0f}a")
 
-# ##write pixdimensinos
-# import nibabel as nib
+##write pixdimensinos
+import nibabel as nib
 # for i in range(131):
 #     path = "/data/datasets/Liver/LiTS2017/Volumes/volume-"
 #     path += str(i) + ".nii"
 #     img = nib.load(path)
 #     #print(img.header['dim'])
-#     print(f"{i:3.0f}: {img.header['pixdim'][1]:.3f}, {img.header['pixdim'][2]:.3f}, {img.header['pixdim'][3]:.3f}")
+#     #print(f"{i:3.0f}: {img.header['pixdim'][1]:.3f}, {img.header['pixdim'][2]:.3f}, {img.header['pixdim'][3]:.3f}")
+#     print(f"{i:3.0f}: {img.header['pixdim'][1]:.6f}, {img.header['pixdim'][2]:.6f}, {img.header['pixdim'][3]:.3f}")
+
+i=44
+path = "/data/datasets/Liver/LiTS2017/Volumes/volume-"
+path += str(i) + ".nii"
+img = nib.load(path)
+print(img.header['pixdim'])
+print(img.header['dim'])
+print(img.header)
+
 
 # if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
 #                         tumors_detected.append(1)
 #                     else:
 #                         tumors_detected.append(0)
-import numpy as np
-x = np.array([0,0.1,0.4,0.4])
-if 1 in np.where(0.5 < x, 1, 0):
-    print(1)
-else:
-    print(0)
+#import numpy as np
+# x = np.array([0,0.1,0.4,0.4])
+# for i in range(3):
+#     x = np.append(x,i)
+# print(x)
+# if 1 in np.where(0.5 < x, 1, 0):
+#     print(1)
+# else:
+#     print(0)
+
+# x = [1,2,3,4]
+# for i in range(len(x)):
+#     print(x[i])
+
+# x = np.empty((0,2), float)
+# for i in range(5):
+#     x = np.append(x, [[i,0]], axis =0)
+
+# # print(x)
+# import os
+# files = os.listdir()
+# print(files)

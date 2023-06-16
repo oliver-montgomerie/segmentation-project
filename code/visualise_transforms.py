@@ -11,7 +11,7 @@ def stuff():
     # train_labels = sorted(glob.glob(os.path.join(data_dir, "labelsTr", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
 
-    check_files = data_dicts[0:1]
+    check_files = data_dicts[0:1], data_dicts[71:72]
 
     #Load data transforms
     from transforms import check_transforms
@@ -23,14 +23,13 @@ def stuff():
     check_ds = Dataset(data=check_files, transform=check_transforms)
 
     ###dataloaders
-    check_loader = DataLoader(check_ds, batch_size=1, shuffle=False, num_workers=1)
+    check_loader = DataLoader(check_ds, batch_size=2, shuffle=False, num_workers=1) #,collate_fn=PadListDataCollate()
     check_data = first(check_loader)
-    # check_data = first(check_loader)
-    # check_data = first(check_loader)
+    #check_data = first(check_loader)
+    #check_data = first(check_loader)
     # check_data = first(check_loader)
     # check_data = first(check_loader)
 
-    plt.show()
 
 
 if __name__ == '__main__':
