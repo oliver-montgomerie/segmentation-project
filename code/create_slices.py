@@ -1,12 +1,16 @@
 from imports import *
 
 def stuff():
-    img_save_path = "/home/omo23/Documents/sliced-data/Images"
-    lbl_save_path = "/home/omo23/Documents/sliced-data/Labels"
-
+    img_save_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/sliced-data/Images"
+    lbl_save_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/sliced-data/Labels"
+    #img_save_path = "/home/omo23/Documents/sliced-data/Images"
+    #lbl_save_path = "/home/omo23/Documents/sliced-data/Labels"
+    
     for i in range(131):
-        img_path = "/data/datasets/Liver/LiTS2017/Volumes/volume-" + str(i) + ".nii"
-        lbl_path = "/data/datasets/Liver/LiTS2017/Segmentations/segmentation-" + str(i) + ".nii"
+        img_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/imagesTr/volume-" + str(i) + ".nii"  
+        lbl_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/labelsTr/segmentation-" + str(i) + ".nii"
+        #img_path = "/data/datasets/Liver/LiTS2017/Volumes/volume-" + str(i) + ".nii"
+        #lbl_path = "/data/datasets/Liver/LiTS2017/Segmentations/segmentation-" + str(i) + ".nii"
         img = nib.load(img_path)
         lbl = nib.load(lbl_path)
 
