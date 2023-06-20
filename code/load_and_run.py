@@ -17,7 +17,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         quit()
 
     num_workers = 16
-    train_batch_size = 16
+    batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
     scheduler_step_size = 25
@@ -64,12 +64,12 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     ###datasets
     train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
-    # train_ds = Dataset(data=train_files, transform=train_transforms)
-    # val_ds = Dataset(data=val_files, transform=val_transforms)
+    train_ds = Dataset(data=train_files, transform=train_transforms)
+    val_ds = Dataset(data=val_files, transform=val_transforms)
     
     ###dataloaders
-    train_loader = DataLoader(train_ds, batch_size=train_batch_size, shuffle=True, num_workers=num_workers) #train_batch_size
-    val_loader = DataLoader(val_ds, batch_size=len(val_ds), shuffle=True, num_workers=num_workers) 
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers) 
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers) 
 
     # create UNet, DiceLoss and Adam optimizer
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -110,7 +110,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     from transforms import test_transforms
     test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
     # test_ds = Dataset(data=test_files, transform=test_transforms)
-    test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False, num_workers=num_workers)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     testset_dice_metric = DiceMetric(include_background=False, reduction="none")
 
@@ -129,7 +129,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
                 "\nNumber of train files:", number_of_training,
                 "\nNumber of val files:", number_of_validation,
                 "\nNumber of test files:", number_of_test,
-                "\nTrain batch size:", train_batch_size,
+                "\nbatch size:", batch_size,
                 "\nmodel:", type(model),
                 "\n   channels:", model.channels,
                 "\n   strides:", model.strides,

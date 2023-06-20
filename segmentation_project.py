@@ -59,14 +59,18 @@ import nibabel as nib
 #     #print(f"{i:3.0f}: {img.header['pixdim'][1]:.3f}, {img.header['pixdim'][2]:.3f}, {img.header['pixdim'][3]:.3f}")
 #     print(f"{i:3.0f}: {img.header['pixdim'][1]:.6f}, {img.header['pixdim'][2]:.6f}, {img.header['pixdim'][3]:.3f}")
 
-i=44
-path = "/data/datasets/Liver/LiTS2017/Volumes/volume-"
-path += str(i) + ".nii"
-img = nib.load(path)
-print(img.header['pixdim'])
-print(img.header['dim'])
-print(img.header)
+# i=44
+# path = "/data/datasets/Liver/LiTS2017/Volumes/volume-"
+# path += str(i) + ".nii"
+# img = nib.load(path)
+# print(img.header['pixdim'])
+# print(img.header['dim'])
+# print(img.header)
 
+
+for i in range(1):
+    print(i)
+    
 
 # if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
 #                         tumors_detected.append(1)
