@@ -7,6 +7,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         os.makedirs(save_path)
         os.makedirs(os.path.join(save_path, "test-comparisons"))
         print("created folder:",save_path)
+    elif save_path[-4:] == "test":
+        print("Re-writing test folder")
+        if os.path.exists(save_path):
+            shutil.rmtree(save_path)
+        os.makedirs(save_path)
     else:
         print(save_path, " Folder already exists. Quitting...")
         quit()
@@ -18,44 +23,53 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     scheduler_step_size = 25
 
     #Data loading
-    data_dir = "/data/datasets/Liver/LiTS2017"   
-    train_images = sorted(glob.glob(os.path.join(data_dir, "Volumes", "*.nii")))
-    train_labels = sorted(glob.glob(os.path.join(data_dir, "Segmentations", "*.nii")))
-    data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(train_images, train_labels)]
+    data_dir = "/home/omo23/Documents/sliced-data"
+    all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+    all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+    data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
 
-    no_files = len(data_dicts) 
+    file_numbers = []
+    for n in all_images:
+        fpath = n
+        fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
+        if fpath not in file_numbers:
+            file_numbers.append(fpath)
+    
+    #file_numbers = [0,1,2] #for testing
+
+    no_files = len(file_numbers) #len(data_dicts) 
     number_of_test = (tr_va_split[2] * no_files) // 100
     number_of_validation = (tr_va_split[1] * no_files) // 100
     number_of_training = no_files - number_of_test - number_of_validation
     number_of_training = round(number_of_training * fraction_of_data)
     
-    test_files = data_dicts[-number_of_test:]
-    val_files = data_dicts[-(number_of_test+number_of_validation):-number_of_test]
-    train_files = data_dicts[0:number_of_training]
-    ##train_files = data_dicts[0:-(number_of_test+number_of_validation)] 
+    test_files_nums = file_numbers[-number_of_test:]
+    val_files_nums = file_numbers[-(number_of_test+number_of_validation):-number_of_test]
+    train_files_nums = file_numbers[0:number_of_training]
 
-    # train_files = data_dicts[0:1] 
-    # val_files = data_dicts[1:2]
-    # test_files = data_dicts[2:5]
+    test_files, val_files, train_files = [], [], []
+    for d in data_dicts:
+        d_num = d['image']
+        d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
+        if d_num in test_files_nums:
+            test_files.append(d)
+        if d_num in val_files_nums:
+            val_files.append(d)
+        if d_num in train_files_nums:
+            train_files.append(d)
     
-    print("Number of train files:", len(train_files), "Number of val files:", len(val_files), "Number of test files:", len(test_files))
-
-    #Load data transforms
-    #from transforms import train_transforms, val_transforms, test_transforms
-    from transforms import test_transforms
+    print("Number of train files:", len(train_files_nums), "Number of val files:", len(val_files_nums), "Number of test files:", len(test_files_nums))
+    print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
     ###datasets
     train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
-    test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
     # train_ds = Dataset(data=train_files, transform=train_transforms)
     # val_ds = Dataset(data=val_files, transform=val_transforms)
-    # test_ds = Dataset(data=test_files, transform=test_transforms)
-
+    
     ###dataloaders
     train_loader = DataLoader(train_ds, batch_size=train_batch_size, shuffle=True, num_workers=num_workers) #train_batch_size
     val_loader = DataLoader(val_ds, batch_size=len(val_ds), shuffle=True, num_workers=num_workers) 
-    test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False, num_workers=num_workers)
 
     # create UNet, DiceLoss and Adam optimizer
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -72,12 +86,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     
     loss_function = DiceLoss(to_onehot_y=True, softmax=True)
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    #scheduler = ExponentialLR(optimizer, gamma=scheduler_gamma)     #ReduceLROnPlateau
-    scheduler = StepLR(optimizer, step_size = scheduler_step_size, gamma=scheduler_gamma)     
+    scheduler = StepLR(optimizer, step_size = scheduler_step_size, gamma=scheduler_gamma)     #ReduceLROnPlateau 
     dice_metric = DiceMetric(include_background=False, reduction="mean")
     print("Created model, loss, optim ,dice")
 
-    #Training loop
+    ### Training loop
     from training_loop import training_loop
     epoch_loss_values, metric_values = training_loop(
                     model = model,
@@ -92,8 +105,12 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
                     model_path_and_name = os.path.join(save_path, "best_metric_model.pth"),
                     )
 
-    #check on test set
+    ### check on test set
     from check_model_output import check_model_output
+    from transforms import test_transforms
+    test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+    # test_ds = Dataset(data=test_files, transform=test_transforms)
+    test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False, num_workers=num_workers)
 
     testset_dice_metric = DiceMetric(include_background=False, reduction="none")
 
