@@ -12,6 +12,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         if os.path.exists(save_path):
             shutil.rmtree(save_path)
         os.makedirs(save_path)
+        os.makedirs(os.path.join(save_path, "test-comparisons"))
     else:
         print(save_path, " Folder already exists. Quitting...")
         quit()

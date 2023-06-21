@@ -96,7 +96,8 @@ def training_loop(model,
                 )
 
                 ## early stopping
-                if early_stopper.early_stop(metric):             
+                if early_stopper.early_stop(metric): 
+                    print("### stopping early ###")            
                     break
 
     print(f"train completed, best_metric: {best_metric:.4f} " f"at epoch: {best_metric_epoch}")
