@@ -1,5 +1,23 @@
 from imports import *
 
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = np.inf
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+
 def training_loop(model,
                   train_loader,
                   val_loader,
@@ -12,6 +30,7 @@ def training_loop(model,
                   model_path_and_name = "",
                   ):
 
+    early_stopper = EarlyStopper(patience=10, min_delta=0)
     val_interval = 2
     best_metric = -1
     best_metric_epoch = -1
@@ -75,6 +94,10 @@ def training_loop(model,
                     f"\nbest val mean dice: {best_metric:.4f} "
                     f"at epoch: {best_metric_epoch}"
                 )
+
+                ## early stopping
+                if early_stopper.early_stop(metric):             
+                    break
 
     print(f"train completed, best_metric: {best_metric:.4f} " f"at epoch: {best_metric_epoch}")
     return epoch_loss_values, metric_values

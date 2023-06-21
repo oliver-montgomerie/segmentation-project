@@ -27,7 +27,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
     all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+    
+    # filter out slices with small tumor area
+    data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
 
+    # find how many individual files there are
     file_numbers = []
     for n in all_images:
         fpath = n
@@ -104,8 +108,31 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
                     max_epochs = number_of_epochs,
                     model_path_and_name = os.path.join(save_path, "best_metric_model.pth"),
                     )
+    
+    ###Plot train & val loss 
+    with open(os.path.join(save_path,'losses.pkl'),'wb') as f:
+        pickle.dump([epoch_loss_values, metric_values], f)
+
+    plt.figure("Train and Validation", (12, 6))
+    plt.title("Epoch Average Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Loss")   
+    x = [i + 1 for i in range(len(epoch_loss_values))]
+    y = epoch_loss_values
+    plt.plot(x, y, label="train")
+
+    x = [2 * (i + 1) for i in range(len(metric_values))] #x = [val_interval * (i + 1) for i in range(len(metric_values))] #val_int =2
+    y = list(map(lambda x:1-x, metric_values))
+    plt.plot(x, y, label="val")
+
+    plt.legend(loc="upper right")
+    plt.savefig(os.path.join(save_path, "train_val_loss.png"), bbox_inches='tight')
+    plt.close()
+    
 
     ### check on test set
+    num_workers = 4
+    batch_size = 16
     from check_model_output import check_model_output
     from transforms import test_transforms
     test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
@@ -156,26 +183,8 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         for t in val_transforms.transforms:
              f.write("\n"+str(type(t)))
 
-    with open(os.path.join(save_path,'losses.pkl'),'wb') as f:
-        pickle.dump([epoch_loss_values, metric_values], f)
-
-    #Plot train & val loss 
-    plt.figure("Train and Validation", (12, 6))
-    plt.title("Epoch Average Loss")
-    plt.xlabel("Epoch")
-    plt.ylabel("Dice Loss")   
-    x = [i + 1 for i in range(len(epoch_loss_values))]
-    y = epoch_loss_values
-    plt.plot(x, y, label="train")
-
-    x = [2 * (i + 1) for i in range(len(metric_values))] #x = [val_interval * (i + 1) for i in range(len(metric_values))] #val_int =2
-    y = list(map(lambda x:1-x, metric_values))
-    plt.plot(x, y, label="val")
-
-    plt.legend(loc="upper right")
-    plt.savefig(os.path.join(save_path, "train_val_loss.png"), bbox_inches='tight')
-    plt.close()
     
+        
     print("Finished!")
 
 

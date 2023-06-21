@@ -66,11 +66,22 @@ import nibabel as nib
 # print(img.header['pixdim'])
 # print(img.header['dim'])
 # print(img.header)
+import numpy as np
 
+num_test_files = 1970
 
-for i in range(1):
-    print(i)
-    
+x = (np.linspace(0, num_test_files, 20, dtype=int))
+print(x)
+print(x[-5:])
+
+x = np.array([[1,2],[3,4],[5,6]])
+print(len(x))
+y = np.zeros(len(x))
+print(y)
+
+print(np.random.randint(0, 3, 5))
+
+print(1%5, 3%5, 5%5, 7%5, 9%5,)
 
 # if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
 #                         tumors_detected.append(1)

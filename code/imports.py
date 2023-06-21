@@ -46,3 +46,10 @@ import nibabel as nib
 import pickle
 from skimage.measure import label as seperate_instances
 
+min_tumor_size = 314 # pi mm^2  for diameter 2cm tumors
+
+def file_tumor_size(file):
+    lbl = nib.load(file['label']) 
+    np_lbl = np.array(lbl.dataobj)
+    size_tumors = np.sum(np_lbl == 2) * lbl.header['pixdim'][1] * lbl.header['pixdim'][2]
+    return size_tumors

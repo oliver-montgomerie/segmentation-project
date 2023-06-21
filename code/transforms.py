@@ -40,6 +40,7 @@ load_slice_transforms = Compose(
             b_max=1.0,
             clip=True,
         ),
+        Orientationd(keys=["image", "label"], axcodes="LA"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
         Spacingd(keys=["image", "label"], pixdim=(0.556641, 0.556641), mode=("bilinear", "nearest")),
         ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [800,800]),
@@ -118,6 +119,7 @@ class temps_save(MapTransform):
 
         with open(os.path.join(self.path, self.title),'wb') as f:
             pickle.dump(image, f)
+            #pickle.dump(label, f)
         
         return d
     
@@ -181,6 +183,7 @@ check_transforms = Compose(
         ),
         temps_save(2, check_temp_path),
 
+        Orientationd(keys=["image", "label"], axcodes="LAS"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
         temps_save(3, check_temp_path),
 

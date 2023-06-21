@@ -32,6 +32,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                         test_data["image"].to(device),
                         test_data["label"].to(device),
                     )
+            running_batch_size = test_labels.shape[0]
             
             #get predicted output
             test_outputs = model(test_inputs)
@@ -44,9 +45,12 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             dice_metric(y_pred=one_hot_out, y=one_hot_labels)
 
             x = dice_metric.get_buffer() #just has the dice values so we print it in plot
+            x = x[-running_batch_size:]
+            
+            for b_item in range(running_batch_size):
+                test_file_counter = (i * running_batch_size) + b_item
 
-            #split into seperate tumor instances
-            for b_item in range(test_labels.shape[0]):
+                #split into seperate tumor instances
                 tumors = test_labels[b_item,0,:,:].cpu()
                 tumors[tumors == 1] = 0
                 gt_seperated_tumor_labels, gt_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
@@ -54,6 +58,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                 tumors[tumors == 1] = 0
                 pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
 
+                #save  avg tumor size and dice prediction of slice
                 gt_avg_tumor_size = np.sum(gt_seperated_tumor_labels > 0) / gt_num_regions
                 avg_size_v_tumor_dice = np.append(avg_size_v_tumor_dice, [[gt_avg_tumor_size, x[b_item][1].item()]], axis = 0)
 
@@ -73,35 +78,38 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     else:
                         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 0]], axis=0)
 
-            #plot slices
-            for j in range(1): #first of each batch?
-                txt = "Liver dice: " + str(round(x[j][0].item(),3)) + ", Tumor dice: "+ str(round(x[j][1].item(),3))
-                plt.figure("Comparison", (18, 6))
-                plt.axis('off')
-                plt.suptitle(txt)       
-                plt.subplot(1, 3, 1)
-                plt.title(f"image")
-                plt.imshow(test_inputs[j,0,:,:].detach().cpu(), cmap="gray")
+                #plot 20 slices from range of files
+                if test_file_counter in np.linspace(0, num_test_files, 20, dtype=int):
+                    txt = "Liver dice: " + str(round(x[b_item][0].item(),3)) + ", Tumor dice: "+ str(round(x[b_item][1].item(),3)) + "\nTumor pixels: " + str(np.sum(gt_seperated_tumor_labels > 0))
+                    plt.figure("Comparison", (18, 6))
+                    plt.suptitle(txt)       
+                    plt.subplot(1, 3, 1)
+                    plt.axis('off')
+                    plt.title(f"image")
+                    plt.imshow(test_inputs[b_item,0,:,:].detach().cpu(), cmap="gray")
 
-                plt.subplot(1, 3, 2)
-                plt.title(f"label")
-                plt.imshow(test_labels[j,0,:,:].detach().cpu())
+                    plt.subplot(1, 3, 2)
+                    plt.axis('off')
+                    plt.title(f"label")
+                    plt.imshow(test_labels[b_item,0,:,:].detach().cpu(), vmin=0, vmax=2)
 
-                plt.subplot(1, 3, 3)
-                plt.title(f"prediction")
-                plt.imshow(test_outputs[j,0,:,:].detach().cpu())
+                    plt.subplot(1, 3, 3)
+                    plt.axis('off')
+                    plt.title(f"prediction")
+                    plt.imshow(test_outputs[b_item,0,:,:].detach().cpu(), vmin=0, vmax=2)
 
-                fpath = test_data['image_meta_dict']['filename_or_obj'][j]
-                fpath = fpath[-7:-4]
-                if fpath[0] == "e": fpath = fpath[2:]
-                if fpath[0] == "-": fpath = fpath[1:]
-                fname = "test-comparisons/pred-" + fpath + ".png"
-                plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
-                plt.close()
+                    fpath = test_data['image_meta_dict']['filename_or_obj'][b_item]
+                    fpath = fpath[fpath.rfind("/")+1:-4] 
+                    fname = "test-comparisons/pred-" + fpath + ".png"
+                    plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+                    plt.close()
         
-        ##
+
+    ## dice v avg size
+    avg_size_v_tumor_dice = sorted(avg_size_v_tumor_dice, key=lambda id: id[0])
+    avg_size_v_tumor_dice = np.array(avg_size_v_tumor_dice)
     with open(os.path.join(save_path,'tumor-dice-v-avg-size.pkl'),'wb') as f:
-        pickle.dump(tumors_detected, f)
+        pickle.dump(avg_size_v_tumor_dice, f)
 
     plt.figure("dice v avg size")
     plt.suptitle("test set tumor dice compared to avg tumor size")
@@ -111,25 +119,57 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
     plt.savefig(os.path.join(save_path, "tumor-dice-v-avg-size"), bbox_inches='tight')
     plt.close()
 
-    ## todo: make the graph better # cummulative freq?
-    # todo: if use bar then set not found -1
+
+    ## detection v size
+    tumors_detected = sorted(tumors_detected, key=lambda id: id[0])
+    tumors_detected = np.array(tumors_detected)
     with open(os.path.join(save_path,'detected-v-tumor-size.pkl'),'wb') as f:
         pickle.dump(tumors_detected, f)
 
-    print(tumors_detected)
+    y = np.zeros(len(tumors_detected))
+    y_sum = 0
+    for t in range(len(tumors_detected)):
+        y_sum += tumors_detected[t][1]
+        y[t] = y_sum
+
     plt.figure("detected v tumor_size")
     plt.suptitle("test set detected vs avg tumor size")
     plt.xlabel('size (pixels)')
-    plt.ylabel('Detected = 1')
-    plt.bar(tumors_detected[:,0],tumors_detected[:,1])
-    plt.savefig(os.path.join(save_path, "detected-v-tumor-size"), bbox_inches='tight')
+    plt.ylabel('Cumulative detections')
+    plt.plot(tumors_detected[:,0], y)
+    plt.savefig(os.path.join(save_path, "detected-v-tumor-size-cumulative"), bbox_inches='tight')
     plt.close()
 
-    #cumulative
-    # arrange tumors_detected smallest to largest
-    # x sizes
-    # y, sum += for 1's
+    num_bins = 20
+    num_in_bin = len(tumors_detected) // num_bins + 1
+    bin_perc_detected = np.zeros(num_bins)
+    bin_centres = np.zeros(num_bins)
+    width = np.zeros(num_bins)
+    for i, t in enumerate(tumors_detected):
+        bin_num = i // num_in_bin
+        if bin_num >= num_bins: break
+        bin_perc_detected[bin_num] += t[1]
+        bin_centres[bin_num] += t[0]
+        
+        if bin_num > 0:
+            width[bin_num] = t[0] - tumors_detected[i-num_in_bin][0]  #(t[0] - (3*width[bin_num-1])) // 3 
+        else: 
+            width[bin_num] = t[0]//2
 
+    width = [x *0.9 for x in width]
+
+    bin_perc_detected = [100 * x / num_in_bin for x in bin_perc_detected]
+    bin_centres = [x // num_in_bin for x in bin_centres]
+
+    plt.figure("detected v tumor_size")
+    plt.suptitle("test set detected vs avg tumor size")
+    plt.xlabel('average size (pixels)')
+    plt.ylabel('percentage detected')
+    plt.bar(bin_centres, bin_perc_detected, width=width)
+    plt.savefig(os.path.join(save_path, "detected-v-tumor-size-bars"), bbox_inches='tight')
+    plt.close()   
+
+    # print n return metrics.
 
     metric = dice_metric.aggregate(reduction="mean_batch") #gets the avg for liver and tumor seperately
     dice_metric.reset()
@@ -137,3 +177,65 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
     print(f"Test set tumor mean dice: {metric[1].item():.4f}")
 
     return [metric[0].item(), metric[1].item()]
+
+
+
+save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
+num_workers = 4
+batch_size = 16 
+
+#Data loading
+data_dir = "/home/omo23/Documents/sliced-data"
+all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+
+# filter out slices with small tumor area
+data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
+
+file_numbers = []
+for n in all_images:
+    fpath = n
+    fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
+    if fpath not in file_numbers:
+        file_numbers.append(fpath)
+
+no_files = len(file_numbers) #len(data_dicts) 
+number_of_test = (20 * no_files) // 100
+test_files_nums = file_numbers[-number_of_test:]
+
+test_files = []
+for d in data_dicts:
+    d_num = d['image']
+    d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
+    if d_num in test_files_nums:
+        test_files.append(d)
+
+## sort test files smallest to largest tumor
+test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+model = UNet(
+    spatial_dims=2,
+    in_channels=1,
+    out_channels=3,
+    channels=(16, 32, 64, 128, 256),
+    strides=(2, 2, 2, 2),
+    num_res_units=2,
+    norm=Norm.BATCH,
+).to(device)
+
+from transforms import test_transforms
+test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+# test_ds = Dataset(data=test_files, transform=test_transforms)
+test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+testset_dice_metric = DiceMetric(include_background=False, reduction="none")
+
+testset_dice = check_model_output(save_path = save_path, 
+                    model = model, 
+                    dice_metric = testset_dice_metric,
+                    data_loader = test_loader,
+                    device = device,
+                    num_test_files = len(test_files))
