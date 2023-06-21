@@ -17,11 +17,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         print(save_path, " Folder already exists. Quitting...")
         quit()
 
-    num_workers = 16
+    num_workers = 8
     batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
-    scheduler_step_size = 25
+    scheduler_step_size = 10
 
     #Data loading
     data_dir = "/home/omo23/Documents/sliced-data"

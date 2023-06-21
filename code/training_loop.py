@@ -30,7 +30,7 @@ def training_loop(model,
                   model_path_and_name = "",
                   ):
 
-    early_stopper = EarlyStopper(patience=10, min_delta=0)
+    early_stopper = EarlyStopper(patience=5, min_delta=0)
     val_interval = 2
     best_metric = -1
     best_metric_epoch = -1
