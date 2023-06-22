@@ -11,11 +11,31 @@ class EarlyStopper:
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
+            print(f"Early stop counter: {self.counter}/{self.patience}")
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
+            print(f"Early stop counter: {self.counter}/{self.patience}")
             if self.counter >= self.patience:
                 return True
         return False
+    
+
+def save_train_images(batch_data, save_path):
+    images, _ = (
+        batch_data["image"],
+        batch_data["label"],
+    )
+    for i in range(images.shape[0]):
+        plt.figure("Training data", (18, 6))
+        plt.axis('off')
+        plt.imshow(images[i,0,:,:].detach().cpu(), cmap="gray")
+        fpath = batch_data['image_meta_dict']['filename_or_obj'][i]
+        fpath = fpath[fpath.rfind("/")+1:-4] 
+        fname = "training-batch/img-" + fpath + ".png"
+        plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+        plt.close()
+
+    return
 
 
 def training_loop(model,
@@ -26,12 +46,12 @@ def training_loop(model,
                   loss_function,
                   dice_metric,
                   device,
+                  save_path,
                   max_epochs = 1,
-                  model_path_and_name = "",
                   ):
 
     early_stopper = EarlyStopper(patience=5, min_delta=0)
-    val_interval = 2
+    val_interval = 1
     best_metric = -1
     best_metric_epoch = -1
     epoch_loss_values = []
@@ -49,6 +69,8 @@ def training_loop(model,
                 batch_data["image"].to(device),
                 batch_data["label"].to(device),
             )
+            if step == 1 and epoch == 0:    #save first batch of training data
+                save_train_images(batch_data, save_path)
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = loss_function(outputs, labels)
@@ -62,7 +84,7 @@ def training_loop(model,
         epoch_loss_values.append(epoch_loss)
         print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
 
-        #validation every other epoch
+        #validation 
         if (epoch + 1) % val_interval == 0:
             model.eval()
             with torch.no_grad():
@@ -87,7 +109,7 @@ def training_loop(model,
                 if metric > best_metric:
                     best_metric = metric
                     best_metric_epoch = epoch + 1
-                    torch.save(model.state_dict(), model_path_and_name) #os.path.join(model_dir, "best_metric_model.pth"))
+                    torch.save(model.state_dict(), os.path.join(save_path, "best_metric_model.pth")) 
                     print("saved new best metric model")
                 print(
                     f"current epoch: {epoch + 1} current val mean dice: {metric:.4f}"
@@ -96,7 +118,7 @@ def training_loop(model,
                 )
 
                 ## early stopping
-                if early_stopper.early_stop(metric): 
+                if early_stopper.early_stop(1-metric): 
                     print("### stopping early ###")            
                     break
 

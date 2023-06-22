@@ -6,6 +6,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     if not os.path.exists(save_path):
         os.makedirs(save_path)
         os.makedirs(os.path.join(save_path, "test-comparisons"))
+        os.makedirs(os.path.join(save_path, "training-batch"))
         print("created folder:",save_path)
     elif save_path[-4:] == "test":
         print("Re-writing test folder")
@@ -13,9 +14,10 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
             shutil.rmtree(save_path)
         os.makedirs(save_path)
         os.makedirs(os.path.join(save_path, "test-comparisons"))
+        os.makedirs(os.path.join(save_path, "training-batch"))
     else:
         print(save_path, " Folder already exists. Quitting...")
-        quit()
+        return None
 
     num_workers = 8
     batch_size = 16
@@ -106,8 +108,8 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
                     loss_function = loss_function,
                     dice_metric = dice_metric,
                     device = device,
+                    save_path = save_path,
                     max_epochs = number_of_epochs,
-                    model_path_and_name = os.path.join(save_path, "best_metric_model.pth"),
                     )
     
     ###Plot train & val loss 
@@ -122,7 +124,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     y = epoch_loss_values
     plt.plot(x, y, label="train")
 
-    x = [2 * (i + 1) for i in range(len(metric_values))] #x = [val_interval * (i + 1) for i in range(len(metric_values))] #val_int =2
+    x = [1 * (i + 1) for i in range(len(metric_values))] #x = [val_interval * (i + 1) for i in range(len(metric_values))] #val_int =2
     y = list(map(lambda x:1-x, metric_values))
     plt.plot(x, y, label="val")
 

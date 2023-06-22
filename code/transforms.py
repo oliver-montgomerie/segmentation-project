@@ -42,8 +42,8 @@ load_slice_transforms = Compose(
         ),
         Orientationd(keys=["image", "label"], axcodes="LA"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
-        Spacingd(keys=["image", "label"], pixdim=(0.556641, 0.556641), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [800,800]),
+        Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
     ]
 )
 
@@ -183,12 +183,12 @@ check_transforms = Compose(
         ),
         temps_save(2, check_temp_path),
 
-        Orientationd(keys=["image", "label"], axcodes="LAS"),
+        Orientationd(keys=["image", "label"], axcodes="LA"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
         temps_save(3, check_temp_path),
 
-        Spacingd(keys=["image", "label"], pixdim=(0.556641, 0.556641), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [800,800]),
+        Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
         temps_save(4, check_temp_path),
         
         deform_check,
@@ -217,8 +217,8 @@ check_transforms = Compose(
 #        SliceWithMaxNumLabelsd(["image", "label"], "label"),
 #        Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
 #        Flipd(["image", "label"], spatial_axis=1),
-#        Spacingd(keys=["image", "label"], pixdim=(0.556641, 0.556641), mode=("bilinear", "nearest")),
-#        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [800,800]),
+#        Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
+#        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
 
 #    ]
 #)

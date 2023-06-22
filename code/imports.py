@@ -36,7 +36,13 @@ from monai.config import print_config
 from monai.apps import download_and_extract
 import torch
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
-import matplotlib.pyplot as plt
+
+## Top for viewing. Below lines for saving
+#import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+
 import tempfile
 import shutil
 import os
@@ -46,7 +52,7 @@ import nibabel as nib
 import pickle
 from skimage.measure import label as seperate_instances
 
-min_tumor_size = 314 # pi mm^2  for diameter 2cm tumors
+min_tumor_size = 314 # pi  mm^2  for diameter 2cm tumors
 
 def file_tumor_size(file):
     lbl = nib.load(file['label']) 
