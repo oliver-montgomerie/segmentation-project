@@ -19,40 +19,40 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         print(save_path, " Folder already exists. Quitting...")
         return None
 
-    num_workers = 8
+    num_workers = 4
     batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
-    scheduler_step_size = 10
+    scheduler_step_size = 5
 
     #Data loading
     data_dir = "/home/omo23/Documents/sliced-data"
     all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
     all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
-    
     # filter out slices with small tumor area
     data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
 
-    # find how many individual files there are
-    file_numbers = []
-    for n in all_images:
-        fpath = n
-        fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
-        if fpath not in file_numbers:
-            file_numbers.append(fpath)
+    ### just use the numbers chosen in imports
+    # # find how many individual files there are
+    # file_numbers = []
+    # for n in all_images:
+    #     fpath = n
+    #     fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
+    #     if fpath not in file_numbers:
+    #         file_numbers.append(fpath)
     
-    #file_numbers = [0,1,2] #for testing
+    # #file_numbers = [0,1,2] #for testing
 
-    no_files = len(file_numbers) #len(data_dicts) 
-    number_of_test = (tr_va_split[2] * no_files) // 100
-    number_of_validation = (tr_va_split[1] * no_files) // 100
-    number_of_training = no_files - number_of_test - number_of_validation
-    number_of_training = round(number_of_training * fraction_of_data)
+    # no_files = len(file_numbers) #len(data_dicts) 
+    # number_of_test = (tr_va_split[2] * no_files) // 100
+    # number_of_validation = (tr_va_split[1] * no_files) // 100
+    # number_of_training = no_files - number_of_test - number_of_validation
+    # number_of_training = round(number_of_training * fraction_of_data)
     
-    test_files_nums = file_numbers[-number_of_test:]
-    val_files_nums = file_numbers[-(number_of_test+number_of_validation):-number_of_test]
-    train_files_nums = file_numbers[0:number_of_training]
+    # test_files_nums = file_numbers[-number_of_test:]
+    # val_files_nums = file_numbers[-(number_of_test+number_of_validation):-number_of_test]
+    # train_files_nums = file_numbers[0:number_of_training]
 
     test_files, val_files, train_files = [], [], []
     for d in data_dicts:
