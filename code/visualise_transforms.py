@@ -45,6 +45,5 @@ def stuff():
     # check_data = first(check_loader)
 
 
-
 if __name__ == '__main__':
     stuff()

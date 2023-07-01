@@ -50,7 +50,7 @@ def training_loop(model,
                   max_epochs = 1,
                   ):
 
-    early_stopper = EarlyStopper(patience=5, min_delta=0)
+    early_stopper = EarlyStopper(patience=10, min_delta=0)
     val_interval = 1
     best_metric = -1
     best_metric_epoch = -1

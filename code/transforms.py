@@ -28,6 +28,30 @@ class print_img_and_size(MapTransform):
         return d
 
 
+class flip_if_liver_on_right(MapTransform):
+    #for viewing 2d slices
+    def __init__(self, keys, label_key):
+        self.keys = keys
+        self.label_key = label_key
+
+    def __call__(self, data):
+        #get location of label == 1
+        # if avg idx > width /2 then call flip
+        d = dict(data)
+        im = d['image']
+        lbl = d[self.label_key]
+        idx = np.argwhere(lbl>0) #location of liver
+        mid_liver = np.mean(idx, axis = 0)
+
+        if mid_liver[2] > lbl.shape[2]/2:
+            lbl = torch.flip(lbl, [2])
+            im = torch.flip(im, [2])
+        d[self.label_key] = lbl
+        d['image'] = im
+        return d
+    
+
+
 load_slice_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
@@ -42,6 +66,7 @@ load_slice_transforms = Compose(
         ),
         Orientationd(keys=["image", "label"], axcodes="LA"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
+        flip_if_liver_on_right(keys=["image", "label"], label_key="label"),
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
         ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
     ]
@@ -165,8 +190,8 @@ deform_check = Rand2DElasticd(
 )
 
 #for viewing how the transforms look
-#check_temp_path = "/home/omo23/Documents/segmentation-project"
-check_temp_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project"   
+check_temp_path = "/home/omo23/Documents/segmentation-project"
+#check_temp_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project"   
 check_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"]),
@@ -185,17 +210,18 @@ check_transforms = Compose(
 
         Orientationd(keys=["image", "label"], axcodes="LA"),
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
+        flip_if_liver_on_right(keys=["image", "label"], label_key="label"),
         temps_save(3, check_temp_path),
 
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
         ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
         temps_save(4, check_temp_path),
-        
+
         deform_check,
-        temps_save(5, check_temp_path),
+        temps_save(6, check_temp_path),
 
         RandGaussianNoised(keys=["image"], prob=1, mean=0.0, std=0.2),
-        temps_save(6, check_temp_path),
+        temps_save(7, check_temp_path),
         plot_temps(check_temp_path),
     ]
 ).flatten() 
