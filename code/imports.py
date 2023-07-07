@@ -63,3 +63,6 @@ def file_tumor_size(file):
     np_lbl = np.array(lbl.dataobj)
     size_tumors = np.sum(np_lbl == 2) * lbl.header['pixdim'][1] * lbl.header['pixdim'][2]
     return size_tumors
+
+
+
