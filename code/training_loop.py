@@ -77,7 +77,7 @@ def training_loop(model,
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-            print(f"{step}/{len(train_loader)}, " f"train_loss: {loss.item():.4f}")
+            #print(f"{step}/{len(train_loader)}, " f"train_loss: {loss.item():.4f}")
 
         scheduler.step()
         epoch_loss /= step

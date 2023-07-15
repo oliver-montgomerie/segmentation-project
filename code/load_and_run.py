@@ -1,7 +1,10 @@
 from imports import *
 
 def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0, number_of_epochs = 1000,
-                 train_transforms = None, val_transforms = None):
+                 train_transforms = None, val_transforms = None,
+                 use_vae_data = False, 
+                 use_vae_gan_data = False,
+                 use_empty_slices = False):
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -30,8 +33,13 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
     all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+    
     # filter out slices with small tumor area
-    data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
+    if use_empty_slices:
+        data_dicts = [item for item in data_dicts if (file_tumor_size(item) > min_tumor_size or file_tumor_size(item) == 0)]
+    else:
+        data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
+
 
     ### just use the numbers chosen in imports
     # # find how many individual files there are
@@ -64,6 +72,27 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
             val_files.append(d)
         if d_num in train_files_nums:
             train_files.append(d)
+
+
+    ## load generated data too
+    if use_vae_data:
+        data_dir = "/home/omo23/Documents/generated-data/VAE"
+        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+        vae_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+        train_files += vae_data_dicts
+
+    if use_vae_gan_data:
+        data_dir = "/home/omo23/Documents/generated-data/VAE-GAN"
+        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+        vae_gan_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+        train_files += vae_gan_data_dicts
+
+    #validation and test on slices with tumors
+    val_files  = [item for item in val_files if file_tumor_size(item) > min_tumor_size]
+    test_files = [item for item in test_files if file_tumor_size(item) > min_tumor_size]
+    
     
     print("Number of train files:", len(train_files_nums), "Number of val files:", len(val_files_nums), "Number of test files:", len(test_files_nums))
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
@@ -156,9 +185,9 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     with open(os.path.join(save_path,'info.txt'),'w') as f:
         txt = ["Test set mean liver dice:", round(testset_dice[0],3),
                "\nTest set mean tumor dice:", round(testset_dice[1],3),
-                "\nNumber of train files:", number_of_training,
-                "\nNumber of val files:", number_of_validation,
-                "\nNumber of test files:", number_of_test,
+                "\nNumber of train files:", len(train_files_nums), " Number of train slices:", len(train_files), 
+                "\nNumber of val files:", len(val_files_nums), " Number of val slices:", len(val_files), 
+                "\nNumber of test files:", len(test_files_nums), " Number of test slices:", len(test_files), 
                 "\nbatch size:", batch_size,
                 "\nmodel:", type(model),
                 "\n   channels:", model.channels,

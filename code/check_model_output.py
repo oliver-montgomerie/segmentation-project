@@ -212,7 +212,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 # # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/60-20-20-no-transform"
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/VAE-60-20-20-no-transform"
 # num_workers = 4
 # batch_size = 16 
 

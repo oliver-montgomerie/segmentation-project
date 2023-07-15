@@ -54,7 +54,7 @@ class flip_if_liver_on_right(MapTransform):
 
 load_slice_transforms = Compose(
     [
-        LoadImaged(keys=["image", "label"]),
+        LoadImaged(keys=["image", "label"], image_only=False),
         EnsureChannelFirstd(keys=["image", "label"]),
         ScaleIntensityRanged(
             keys=["image"],
@@ -194,7 +194,7 @@ check_temp_path = "/home/omo23/Documents/segmentation-project"
 #check_temp_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/segmentation-project"   
 check_transforms = Compose(
     [
-        LoadImaged(keys=["image", "label"]),
+        LoadImaged(keys=["image", "label"], image_only=False),
         EnsureChannelFirstd(keys=["image", "label"]),
         temps_save(1, check_temp_path),
 
