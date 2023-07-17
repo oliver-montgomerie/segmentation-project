@@ -1,6 +1,4 @@
 from imports import *
-from choose_slice import SliceWithMaxNumLabelsd
-     
 
 class print_img_and_size(MapTransform):
     #for viewing 2d slices
@@ -68,7 +66,7 @@ load_slice_transforms = Compose(
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
         flip_if_liver_on_right(keys=["image", "label"], label_key="label"),
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [576,576]),
     ]
 )
 
@@ -214,7 +212,7 @@ check_transforms = Compose(
         temps_save(3, check_temp_path),
 
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [576,576]),
         temps_save(4, check_temp_path),
 
         deform_check,

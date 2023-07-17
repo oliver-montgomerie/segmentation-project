@@ -1,5 +1,5 @@
 from imports import *
-import csv
+
 
 def check_data():
     #Data loading
@@ -67,6 +67,8 @@ def check_data():
         # plt.title("label")
         # plt.imshow(seperated_labels)
         # plt.show()
+ 
+        
 
 if __name__ == '__main__':
     check_data()

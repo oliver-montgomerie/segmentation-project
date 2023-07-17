@@ -36,7 +36,19 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             
             #get predicted output
             test_outputs = model(test_inputs)
+            
+            # plt.figure("Comparison", (18, 6))      
+            # plt.subplot(1, 2, 1)
+            # plt.title(f"input")
+            # plt.imshow(test_inputs[0,0,:,:].detach().cpu())
+
+            # plt.subplot(1, 2, 2)
+            # plt.title(f"output")
+            # plt.imshow(test_outputs[0,0,:,:].detach().cpu())
+            # plt.show()
+
             test_outputs = predict_segmentation(test_outputs, mutually_exclusive=True) # .detach().cpu()
+
 
             one_hot_out = one_hot(test_outputs, num_classes=3, dim=1)
 
@@ -103,6 +115,9 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     fname = "test-comparisons/pred-" + fpath + ".png"
                     plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
                     plt.close()
+                    #plt.show()
+
+        print(f"{i}/{len(data_loader)}")
         
 
     ## dice v avg size
@@ -212,8 +227,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 # # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/VAE-60-20-20-no-transform"
-# num_workers = 4
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/100-normal-VAE"
+# num_workers = 1
 # batch_size = 16 
 
 # #Data loading
@@ -224,17 +239,6 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 # # filter out slices with small tumor area
 # data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
-
-# file_numbers = []
-# for n in all_images:
-#     fpath = n
-#     fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
-#     if fpath not in file_numbers:
-#         file_numbers.append(fpath)
-
-# no_files = len(file_numbers) #len(data_dicts) 
-# number_of_test = (20 * no_files) // 100
-# test_files_nums = file_numbers[-number_of_test:]
 
 # test_files = []
 # for d in data_dicts:
@@ -259,8 +263,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 # ).to(device)
 
 # from transforms import test_transforms
-# test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
-# # test_ds = Dataset(data=test_files, transform=test_transforms)
+# #test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+# test_ds = Dataset(data=test_files, transform=test_transforms)
 # test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 # testset_dice_metric = DiceMetric(include_background=False, reduction="none")
