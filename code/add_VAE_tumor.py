@@ -1,8 +1,8 @@
 from imports import *
 
-def generate_a_tumor(model, latent_size, dist, tumor_shape, device):
+def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
     with torch.no_grad():
-        sample = torch.zeros(1, latent_size).to(device)
+        sample = torch.zeros(1, latent_size) #.to(device)
         for s in range(sample.shape[1]):
             #todo: maybe This should be weighted towards the edges for unusual looking tumors?
             sample[0,s] = dist.icdf((torch.rand(1)*0.9) + 0.05)
@@ -15,40 +15,37 @@ def generate_a_tumor(model, latent_size, dist, tumor_shape, device):
         #clip the tumor to the mask size
         o[mask != 1] = 0
 
-        return o[0,:,:], mask[0,:,:]
+        # # make sure its large enough
+        # tumor_size = np.sum(mask == 1) * 0.793 * 0.793
+        # tumor_size = int(tumor_size)
+        # if tumor_size < min_tumor_size:
+        #     continue
 
-def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape, device):
-    #t_spacing = Spacing(pixdim=(0.793, 0.793), mode=("bilinear"))
-    img = img.detach().cpu().numpy()
-    lbl = lbl.detach().cpu().numpy()
+        return torch.from_numpy(o), torch.from_numpy(mask)
+
+def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape): #, device):
+    #todo: change function to torch instead of numpy
+
+    # img = img.detach().cpu().numpy()
+    # lbl = lbl.detach().cpu().numpy()
+    # img = img[0,:,:]
+    # lbl = lbl[0,:,:]
 
     dist = torch.distributions.normal.Normal(torch.tensor(0.0), torch.tensor(1.0))
 
-    liver_pix = np.argwhere(lbl == 1)
+    liver_pix = torch.argwhere(lbl == 1)
 
     max_attempts = 20
     good_placement = False
     for attempt in range(max_attempts):
-        tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape, device)
-        # make sure its large enough
-        tumor_size = np.sum(tumor_lbl == 1) * 0.793 * 0.793
-        tumor_size = int(tumor_size)
-        if tumor_size < min_tumor_size:
-            continue
-
-        #resample to images resolution (from (0.793, 0.793))
-        # todo: this ^ use the t_spacing above?
-
-        #rescale back to hounsfield(?)
-        tumor_img = (tumor_img * 400) - 200
+        tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape) #, device)
 
         # pad to slice size
-        pad_size = img.shape - np.array([tumor_img.shape[0],tumor_img.shape[1]])
+        pad_size = img.size() - tumor_img.size() #np.array([tumor_img.shape[0],tumor_img.shape[1]])
         tumor_img = np.pad(tumor_img, [(pad_size[0], 0), (pad_size[1], 0)], mode='constant', constant_values=np.min(tumor_img))
 
         pad_size = lbl.shape - np.array([tumor_lbl.shape[0],tumor_lbl.shape[1]])
         tumor_lbl = np.pad(tumor_lbl, [(pad_size[0], 0), (pad_size[1], 0)], mode='constant', constant_values=0)
-        
         
         #choose location to insert into liver
         tumor_pix = np.argwhere(tumor_lbl == 1)
@@ -81,7 +78,7 @@ def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape, device):
         # look at ratio in other slices and use that??
 
     if good_placement == False:
-        return torch.from_numpy(img), torch.from_numpy(lbl)
+        torch.unsqueeze(torch.from_numpy(img), 0), torch.unsqueeze(torch.from_numpy(lbl), 0)
         
     # merge images
     sobel_h = ndimage.sobel(tumor_lbl, 0)  # horizontal gradient
@@ -104,6 +101,7 @@ def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape, device):
     plt.title("tumor edge")
     
     gen_img = np.copy(img)
+    print(gen_img.shape, tumor_lbl.shape)
     gen_img[tumor_lbl >= 3] = tumor_img[tumor_lbl >= 3] #(0.8*tumor_img[tumor_lbl >= 3]) + (0.2*gen_img[tumor_lbl >= 3])
 
     plt.subplot(2,2,2)
@@ -155,7 +153,7 @@ def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape, device):
 
     gen_lbl[gen_lbl >= 3] = 2 
 
-    return torch.from_numpy(gen_img), torch.from_numpy(gen_lbl)
+    return torch.unsqueeze(torch.from_numpy(gen_img), 0), torch.unsqueeze(torch.from_numpy(gen_lbl), 0)
 
 
 
@@ -166,7 +164,7 @@ class implant_VAE_tumor(MapTransform):
 
         self.tumor_shape = [1,256,256]
         self.latent_size = 5
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         load_path = "/home/omo23/Documents/generative-models/VAE-models/latent-5-epochs-20"
 
@@ -177,7 +175,7 @@ class implant_VAE_tumor(MapTransform):
             latent_size=self.latent_size,
             channels=(16, 32, 64, 128, 256),
             strides=(1, 2, 2, 2, 2),
-        ).to(self.device)
+        )#.to(self.device)
         self.model.load_state_dict(torch.load(os.path.join(load_path, "trained_model.pth")))
         self.model.eval()
 
@@ -187,7 +185,7 @@ class implant_VAE_tumor(MapTransform):
         lbl = d['label']
 
         idx = np.argwhere(lbl==2) #location of liver
-        tumor_size = np.sum(idx,axis=0)
+        tumor_size = idx.shape[0]
 
         proba = min_tumor_size / (tumor_size + 1) 
         if proba > 1: proba = 1
@@ -196,7 +194,7 @@ class implant_VAE_tumor(MapTransform):
 
         rs = np.random.random_sample()
         if proba >= rs:
-            img, lbl = add_tumor_to_slice(img, lbl, self.model, self.latent_size, self.tumor_shape, self.device)
+            img, lbl = add_tumor_to_slice(img, lbl, self.model, self.latent_size, self.tumor_shape)#, self.device)
             
         d['image'] = img
         d['label'] = lbl

@@ -76,7 +76,8 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], percentage_of_data = 10
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
     ###datasets
-    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
+    #train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
+    train_ds = Dataset(data=train_files, transform=train_transforms)
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
     train_ds = Dataset(data=train_files, transform=train_transforms)
     val_ds = Dataset(data=val_files, transform=val_transforms)

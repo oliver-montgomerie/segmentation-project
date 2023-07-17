@@ -10,10 +10,10 @@ from load_and_run import load_and_run
 
 
 if __name__ == '__main__':
-    from transforms import train_transforms, val_transforms, noise_elastic_train_transforms, elastic_train_transforms
+    from transforms import train_transforms, val_transforms, noise_elastic_train_transforms, VAE_train_transforms
     save_path="/home/omo23/Documents/segmentation-project/saved-tests/"
     fraction_of_train_data = [100, 70, 40, 10]
-
+    fraction_of_train_data = [3]
     max_epochs = 50
 
     ##create results csv file
@@ -23,13 +23,14 @@ if __name__ == '__main__':
             writer.writerow(["Test name", "fraction_of_train_data", "liver", "tumor"])
 
 
-    ##for testing code
-    # load_and_run(save_path="/home/omo23/Documents/segmentation-project/saved-tests/test",
-    #             tr_va_split = [60,20,20],
-    #             number_of_epochs = 2,
-    #             train_transforms = noise_elastic_train_transforms,
-    #             val_transforms = val_transforms,
-    #             use_vae_data=True)
+    #for testing code
+    load_and_run(save_path="/home/omo23/Documents/segmentation-project/saved-tests/test",
+                tr_va_split = [60,20,20],
+                number_of_epochs = 2,
+                train_transforms = VAE_train_transforms,
+                val_transforms = val_transforms,
+                use_vae_data=True,
+                use_all_slices=True)
 
 
     for f in fraction_of_train_data:

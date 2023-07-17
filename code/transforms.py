@@ -1,4 +1,5 @@
 from imports import *
+from add_VAE_tumor import implant_VAE_tumor
 
 class print_img_and_size(MapTransform):
     #for viewing 2d slices
@@ -124,7 +125,6 @@ noise_elastic_train_transforms = Compose(
     ]
 ).flatten()
 
-
 class temps_save(MapTransform):
     #for viewing 2d slices
     def __init__(self, title, path):
@@ -223,6 +223,19 @@ check_transforms = Compose(
         plot_temps(check_temp_path),
     ]
 ).flatten() 
+
+VAE_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        #temps_save(1, check_temp_path),
+        implant_VAE_tumor(keys = ["image", "label"],),
+        #temps_save(2, check_temp_path),
+        deform,
+        RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
+        #temps_save(3, check_temp_path),
+        #plot_temps(check_temp_path),
+    ]
+).flatten()
 
 
 #load_transforms = Compose(
