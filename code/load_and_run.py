@@ -1,10 +1,13 @@
 from imports import *
 
-def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0, number_of_epochs = 1000,
+def load_and_run(save_path = "", tr_va_split=[60,20,20], percentage_of_data = 100, number_of_epochs = 1000,
                  train_transforms = None, val_transforms = None,
                  use_vae_data = False, 
                  use_vae_gan_data = False,
-                 use_empty_slices = False):
+                 use_all_slices = False):
+
+    test_name = save_path[save_path.rfind("/")+1:] 
+    csv_path = save_path[0:save_path.rfind("/")+1] + 'seg_results.csv'
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -33,34 +36,23 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
     all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
-    
-    # filter out slices with small tumor area
-    if use_empty_slices:
-        data_dicts = [item for item in data_dicts if (file_tumor_size(item) > min_tumor_size or file_tumor_size(item) == 0)]
-    else:
-        data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
 
+    ## load generated data too
+    if use_vae_data:
+        data_dir = "/home/omo23/Documents/generated-data/VAE"
+        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+        vae_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+        data_dicts += vae_data_dicts
 
-    ### just use the numbers chosen in imports
-    # # find how many individual files there are
-    # file_numbers = []
-    # for n in all_images:
-    #     fpath = n
-    #     fpath = fpath[fpath.rfind("/")+1:fpath.rfind("-")] 
-    #     if fpath not in file_numbers:
-    #         file_numbers.append(fpath)
+    if use_vae_gan_data:
+        data_dir = "/home/omo23/Documents/generated-data/VAE-GAN"
+        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+        vae_gan_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+        data_dicts += vae_gan_data_dicts
     
-    # #file_numbers = [0,1,2] #for testing
-
-    # no_files = len(file_numbers) #len(data_dicts) 
-    # number_of_test = (tr_va_split[2] * no_files) // 100
-    # number_of_validation = (tr_va_split[1] * no_files) // 100
-    # number_of_training = no_files - number_of_test - number_of_validation
-    # number_of_training = round(number_of_training * fraction_of_data)
-    
-    # test_files_nums = file_numbers[-number_of_test:]
-    # val_files_nums = file_numbers[-(number_of_test+number_of_validation):-number_of_test]
-    # train_files_nums = file_numbers[0:number_of_training]
+    run_train_files_nums = train_files_nums[0:round( len(train_files_nums) * (percentage_of_data/100) ) ]
 
     test_files, val_files, train_files = [], [], []
     for d in data_dicts:
@@ -70,31 +62,17 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
             test_files.append(d)
         if d_num in val_files_nums:
             val_files.append(d)
-        if d_num in train_files_nums:
+        if d_num in run_train_files_nums: # + no_tumor_file_nums
             train_files.append(d)
 
+    # filter out slices with small tumor area.
+    if not use_all_slices: train_files = [item for item in train_files if file_tumor_size(item) > min_tumor_size]
+    else: train_files = [item for item in train_files if (file_tumor_size(item) > min_tumor_size) or (file_tumor_size(item) == 0)]
 
-    ## load generated data too
-    if use_vae_data:
-        data_dir = "/home/omo23/Documents/generated-data/VAE"
-        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
-        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
-        vae_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
-        train_files += vae_data_dicts
-
-    if use_vae_gan_data:
-        data_dir = "/home/omo23/Documents/generated-data/VAE-GAN"
-        all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
-        all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
-        vae_gan_data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
-        train_files += vae_gan_data_dicts
-
-    #validation and test on slices with tumors
     val_files  = [item for item in val_files if file_tumor_size(item) > min_tumor_size]
     test_files = [item for item in test_files if file_tumor_size(item) > min_tumor_size]
     
-    
-    print("Number of train files:", len(train_files_nums), "Number of val files:", len(val_files_nums), "Number of test files:", len(test_files_nums))
+    print("Number of train files:", len(run_train_files_nums), "Number of val files:", len(val_files_nums), "Number of test files:", len(test_files_nums))
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
     ###datasets
@@ -185,7 +163,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
     with open(os.path.join(save_path,'info.txt'),'w') as f:
         txt = ["Test set mean liver dice:", round(testset_dice[0],3),
                "\nTest set mean tumor dice:", round(testset_dice[1],3),
-                "\nNumber of train files:", len(train_files_nums), " Number of train slices:", len(train_files), 
+                "\nNumber of train files:", len(run_train_files_nums), " Number of train slices:", len(train_files), 
                 "\nNumber of val files:", len(val_files_nums), " Number of val slices:", len(val_files), 
                 "\nNumber of test files:", len(test_files_nums), " Number of test slices:", len(test_files), 
                 "\nbatch size:", batch_size,
@@ -205,6 +183,11 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], fraction_of_data = 1.0,
         ]
         for t in txt:
             f.write(f"{t}")
+
+    with open(csv_path, "a", newline='',) as fp:
+        writer = csv.writer(fp, delimiter=",")
+        data = [test_name, percentage_of_data, round(testset_dice[0],3), round(testset_dice[1],3)]
+        writer.writerow(data)
 
     with open(os.path.join(save_path,'info.txt'),'a') as f:
         f.write("\nTrain transforms")
