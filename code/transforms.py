@@ -1,5 +1,5 @@
 from imports import *
-from add_VAE_tumor import implant_VAE_tumor
+from add_tumor_transform import implant_tumor    
 
 class print_img_and_size(MapTransform):
     #for viewing 2d slices
@@ -224,38 +224,53 @@ check_transforms = Compose(
     ]
 ).flatten() 
 
-VAE_train_transforms = Compose(
+RT_train_transforms = Compose(  #rt real tumor
     [
         load_slice_transforms,
-        #temps_save(1, check_temp_path),
-        implant_VAE_tumor(keys = ["image", "label"],),
-        #temps_save(2, check_temp_path),
-        deform,
-        RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
-        #temps_save(3, check_temp_path),
-        #plot_temps(check_temp_path),
+        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = ""),
     ]
 ).flatten()
 
+aug_RT_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = ""),
+        deform,
+        RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
+    ]
+).flatten()
 
-#load_transforms = Compose(
-#    [
-#        LoadImaged(keys=["image", "label"]),
-#        EnsureChannelFirstd(keys=["image", "label"]),
-#        ScaleIntensityRanged(
-#            keys=["image"],
-#            a_min=-200,
-#            a_max=200,
-#            b_min=0.0,
-#            b_max=1.0,
-#            clip=True,
-#        ),
-#        Orientationd(keys=["image", "label"], axcodes="RAS"),
-#        SliceWithMaxNumLabelsd(["image", "label"], "label"),
-#        Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
-#        Flipd(["image", "label"], spatial_axis=1),
-#        Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
-#        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [560,560]),
+VAE_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        implant_tumor(keys = ["image", "label"], t_type = "VAE", load_path = "/home/omo23/Documents/generative-models/VAE-models/latent-5-epochs-20"),
 
-#    ]
-#)
+    ]
+).flatten()
+
+aug_VAE_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        implant_tumor(keys = ["image", "label"], t_type = "VAE", load_path = "/home/omo23/Documents/generative-models/VAE-models/latent-5-epochs-20"),
+        deform,
+        RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
+    ]
+).flatten()
+
+VAE_GAN_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        implant_tumor(keys = ["image", "label"], t_type = "VAE_GAN", load_path = "/home/omo23/Documents/generative-models/VAE-GAN-models/latent-5-epochs-30"),
+
+    ]
+).flatten()
+
+aug_VAE_GAN_train_transforms = Compose(
+    [
+        load_slice_transforms,
+        implant_tumor(keys = ["image", "label"], t_type = "VAE_GAN", load_path = "/home/omo23/Documents/generative-models/VAE-GAN-models/latent-5-epochs-30"),
+        deform,
+        RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
+    ]
+).flatten()
+

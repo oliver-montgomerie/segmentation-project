@@ -4,7 +4,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], percentage_of_data = 10
                  train_transforms = None, val_transforms = None,
                  use_vae_data = False, 
                  use_vae_gan_data = False,
-                 use_all_slices = False):
+                 use_all_slices = True):
 
     test_name = save_path[save_path.rfind("/")+1:] 
     csv_path = save_path[0:save_path.rfind("/")+1] + 'seg_results.csv'
@@ -37,7 +37,7 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], percentage_of_data = 10
     all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
 
-    ## load generated data too
+    ## no don't do this anymore... ## load generated data too
     if use_vae_data:
         data_dir = "/home/omo23/Documents/generated-data/VAE"
         all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
@@ -67,7 +67,8 @@ def load_and_run(save_path = "", tr_va_split=[60,20,20], percentage_of_data = 10
 
     # filter out slices with small tumor area.
     if not use_all_slices: train_files = [item for item in train_files if file_tumor_size(item) > min_tumor_size]
-    else: train_files = [item for item in train_files if (file_tumor_size(item) > min_tumor_size) or (file_tumor_size(item) == 0)]
+    #else: train_files = [item for item in train_files if (file_tumor_size(item) > min_tumor_size) or (file_tumor_size(item) == 0)]
+    else: train_files = train_files
 
     val_files  = [item for item in val_files if file_tumor_size(item) > min_tumor_size]
     test_files = [item for item in test_files if file_tumor_size(item) > min_tumor_size]

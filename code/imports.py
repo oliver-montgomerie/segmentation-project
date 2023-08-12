@@ -35,13 +35,14 @@ from monai.data import CacheDataset, DataLoader, Dataset, decollate_batch
 from monai.config import print_config
 from monai.apps import download_and_extract
 import torch
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 
 ## Top for viewing. Below lines for saving
-import matplotlib.pyplot as plt
-# import matplotlib
-# matplotlib.use('Agg')
-# from matplotlib import pyplot as plt
+# import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 
 import tempfile
 import shutil
@@ -62,7 +63,7 @@ val_files_nums = ['75', '33', '49', '19', '61', '111', '53', '30', '28', '129', 
 test_files_nums = ['2', '80', '117', '67', '48', '123', '94', '1', '57', '79', '95', '63', '4', '130', '68', '37', '82', '42', '14', '100', '98', '54', '52']
 no_tumor_file_nums = ['32', '34', '38', '41', '47', '87', '89', '91', '105', '106', '114', '115', '119']
 
-min_tumor_size = 314 # pi  mm^2  for diameter 2cm tumors
+min_tumor_size = 3.14 # pi  mm^2  for diameter 2cm tumors
 
 def file_tumor_size(file):
     lbl = nib.load(file['label']) 

@@ -22,8 +22,26 @@ def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
         #     continue
 
         return torch.from_numpy(o), torch.from_numpy(mask) #o, mask 
+    
+def get_real_tumor(): #, device):
+    #check through tumor pat
+    folder = "/home/omo23/Documents/tumor-patches-data/Images/"
+    got_tumor = False
+    
+    while not got_tumor:
+        file = random.choice(os.listdir(folder))
+        fnum = file[:file.rfind("-")] 
+        if fnum in train_files_nums:
+            got_tumor = True
+            tumor = nib.load(os.path.join(folder, file))
+            np_tumor = np.array(tumor.dataobj)
+            np_mask = np.zeros(np_tumor.shape)
+            np_mask[np_tumor > np.min(np_tumor)] = 1
+            
+    return torch.from_numpy(np_tumor), torch.from_numpy(np_mask)
 
-def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape): #, device):
+
+def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, device):
     #todo: change function to torch instead of numpy ?why
     dist = torch.distributions.normal.Normal(torch.tensor(0.0), torch.tensor(1.0))
 
@@ -32,7 +50,10 @@ def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape): #, device):
     max_attempts = 20
     good_placement = False
     for attempt in range(max_attempts):
-        tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape) #, device)
+        if t_type == "real":
+            tumor_img, tumor_lbl = get_real_tumor() #could pass train file nums?
+        else:
+            tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape) #, device)
 
         # pad to slice size
         pad_size = [img.size(dim=1) - tumor_img.size(dim=1), img.size(dim=2) - tumor_img.size(dim=2)]
@@ -129,10 +150,12 @@ def add_tumor_to_slice(img, lbl, model, latent_size, tumor_shape): #, device):
 
 
 
-class implant_VAE_tumor(MapTransform):
-    def __init__(self, keys, load_path):
+class implant_tumor(MapTransform):
+    def __init__(self, keys, t_type, load_path):
         #model shape should definetly be saved in a config somewhere instead of this...
         self.keys = keys
+
+        self.t_type = t_type #real, vae, vae-gan, diffusion...
 
         self.tumor_shape = [1,256,256]
         self.latent_size = 5
@@ -157,14 +180,15 @@ class implant_VAE_tumor(MapTransform):
         idx = np.argwhere(lbl==2) #location of liver
         tumor_size = idx.shape[0]
 
-        proba = min_tumor_size / (tumor_size + 1) 
-        if proba > 1: proba = 1
-        proba = 2*(proba - 0.5)
-        if proba < 0: proba = 0
+        # proba = min_tumor_size / (tumor_size + 1) 
+        # if proba > 1: proba = 1
+        # proba = 2*(proba - 0.5)
+        # if proba < 0: proba = 0
+        proba = 1
 
         rs = np.random.random_sample()
         if proba >= rs:
-            img, lbl = add_tumor_to_slice(img, lbl, self.model, self.latent_size, self.tumor_shape)#, self.device)
+            img, lbl = add_tumor_to_slice(img, lbl, self.t_type, self.model, self.latent_size, self.tumor_shape)#, self.device)
             
         d['image'] = img
         d['label'] = lbl
