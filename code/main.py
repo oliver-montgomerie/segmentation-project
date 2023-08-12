@@ -9,7 +9,7 @@ from load_and_run import load_and_run
 
 
 if __name__ == '__main__':
-    from transforms import train_transforms, val_transforms, noise_elastic_train_transforms, 
+    from transforms import train_transforms, val_transforms, noise_elastic_train_transforms
     from transforms import RT_train_transforms, aug_RT_train_transforms
     from transforms import VAE_train_transforms, aug_VAE_train_transforms
     from transforms import VAE_GAN_train_transforms, aug_VAE_GAN_train_transforms
@@ -57,14 +57,14 @@ if __name__ == '__main__':
             
            
         ## Real tumour inserted
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-normal"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = RT_train_transforms,
                     val_transforms = val_transforms)
             
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-augmented"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-VAE",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
@@ -72,14 +72,14 @@ if __name__ == '__main__':
                     val_transforms = val_transforms)
 
         ## VAE 
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-normal"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = VAE_train_transforms,
                     val_transforms = val_transforms)
             
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-augmented"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-VAE",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
@@ -87,14 +87,14 @@ if __name__ == '__main__':
                     val_transforms = val_transforms)
             
         ## VAE-GAN 
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-normal"+"-VAE_GAN",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE_GAN",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = VAE_GAN_train_transforms,
                     val_transforms = val_transforms)
 
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-augmented"+"-VAE_GAN",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-VAE_GAN",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
@@ -102,14 +102,14 @@ if __name__ == '__main__':
                     val_transforms = val_transforms)
 
         ## all slices 
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-normal"+"-all_slice",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-all_slice",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = train_transforms,
                     val_transforms = val_transforms)
             
-            load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-augmented"+"-all_slice",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-all_slice",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,

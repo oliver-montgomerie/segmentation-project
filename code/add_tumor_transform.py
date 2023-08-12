@@ -1,5 +1,24 @@
 from imports import *
 
+
+load_tumor_transforms = Compose(
+    [
+        LoadImaged(keys=["im"], image_only=False),
+        EnsureChannelFirstd(keys=["im"]),
+        ScaleIntensityRanged(keys=["im"],
+            a_min=-200,
+            a_max=200,
+            b_min=0.0,
+            b_max=1.0,
+            clip=True,),
+        Orientationd(keys=["im"], axcodes="LA"),
+        Spacingd(keys=["im"], pixdim=(0.793, 0.793), mode=("bilinear")),
+        #deform,
+        ResizeWithPadOrCropd(keys=["im"], spatial_size = [576,576]),
+    ]
+).flatten() 
+
+
 def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
     with torch.no_grad():
         sample = torch.zeros(1, latent_size) #.to(device)
@@ -33,12 +52,17 @@ def get_real_tumor(): #, device):
         fnum = file[:file.rfind("-")] 
         if fnum in train_files_nums:
             got_tumor = True
-            tumor = nib.load(os.path.join(folder, file))
-            np_tumor = np.array(tumor.dataobj)
-            np_mask = np.zeros(np_tumor.shape)
-            np_mask[np_tumor > np.min(np_tumor)] = 1
-            
-    return torch.from_numpy(np_tumor), torch.from_numpy(np_mask)
+
+            load_d = {"im": os.path.join(folder, file)}
+            tumor = load_tumor_transforms(load_d)
+            tumor = tumor['im']
+            #np_tumor = tumor
+
+            np_mask = np.zeros(tumor.shape)
+            thresh = (np.max(tumor) + np.min(tumor))/2
+            np_mask[tumor > thresh] = 1
+   
+    return tumor, torch.from_numpy(np_mask)
 
 
 def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, device):
@@ -50,7 +74,7 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, de
     max_attempts = 20
     good_placement = False
     for attempt in range(max_attempts):
-        if t_type == "real":
+        if t_type == "REAL":
             tumor_img, tumor_lbl = get_real_tumor() #could pass train file nums?
         else:
             tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape) #, device)
@@ -98,16 +122,18 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, de
         return img, lbl #torch.unsqueeze(torch.from_numpy(img), 0), torch.unsqueeze(torch.from_numpy(lbl), 0)
         
     ## merge images
-    sobel_h = ndimage.sobel(tumor_lbl, 0)  # horizontal gradient
-    sobel_v = ndimage.sobel(tumor_lbl, 1)  # vertical gradient
+    #todo: sort this shit
+
+    sobel_h = ndimage.sobel(tumor_lbl[0,:,:], 0)  # horizontal gradient
+    sobel_v = ndimage.sobel(tumor_lbl[0,:,:], 1)  # vertical gradient
     tumor_edges = np.sqrt(sobel_h**2 + sobel_v**2)
     tumor_edges = tumor_edges / np.max(tumor_edges)
     #tumor_edges = ndimage.gaussian_filter(tumor_edges, sigma = 0.25)
 
     edge_locations = np.argwhere(tumor_edges > 0.5)
-    lbl_locations = np.argwhere(tumor_lbl >= 3)
+    lbl_locations = np.argwhere(tumor_lbl[0,:,:] >= 3)
     dists = cdist(lbl_locations, edge_locations).min(axis=1)
-    distmap = np.zeros(tumor_lbl.shape)
+    distmap = torch.zeros(list(tumor_lbl.size()))
     distmap[tumor_lbl >= 3] = dists
     distmap = distmap / (2*np.max(distmap))
     distmap[distmap>0] = distmap[distmap>0] + 0.5
@@ -117,32 +143,33 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, de
     #gen_img[tumor_lbl >= 3] = tumor_img[tumor_lbl >= 3] #(0.8*tumor_img[tumor_lbl >= 3]) + (0.2*gen_img[tumor_lbl >= 3])
     gen_img[tumor_lbl >= 3] = ((distmap*tumor_img)[tumor_lbl >= 3]) + (((1-distmap)*img)[tumor_lbl >= 3])
 
-    # plt.figure("New tumor", (18, 6))
-    # plt.subplot(2,3,1)
-    # plt.imshow(img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    # plt.title("Original")
-    # plt.axis('off')
-    # plt.subplot(2,3,4)
-    # plt.imshow(lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.figure("New tumor", (18, 6))
+    plt.subplot(2,3,1)
+    plt.imshow(img.detach().cpu().numpy()[0,:,:], cmap="gray")
+    plt.title("Original")
+    plt.axis('off')
+    plt.subplot(2,3,4)
+    plt.imshow(lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.subplot(2,3,2)
-    # plt.imshow(tumor_img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    # plt.axis('off')
-    # plt.title("Generated tumor")
-    # plt.subplot(2,3,5)
-    # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.subplot(2,3,2)
+    plt.imshow(tumor_img.detach().cpu().numpy()[0,:,:], cmap="gray")
+    plt.axis('off')
+    plt.title("Generated tumor")
+    plt.subplot(2,3,5)
+    plt.imshow(tumor_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.subplot(2,3,3)
-    # plt.imshow(gen_img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    # plt.title("Implanted tumor")
-    # plt.axis('off')
-    # plt.subplot(2,3,6)
-    # plt.imshow(gen_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.subplot(2,3,3)
+    plt.imshow(gen_img.detach().cpu().numpy()[0,:,:], cmap="gray")
+    plt.title("Implanted tumor")
+    plt.axis('off')
+    plt.subplot(2,3,6)
+    plt.imshow(gen_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.show()
+    plt.show()
+    plt.pause(1)
 
     gen_lbl[gen_lbl >= 3] = 2 
 
@@ -169,8 +196,10 @@ class implant_tumor(MapTransform):
             channels=(16, 32, 64, 128, 256),
             strides=(1, 2, 2, 2, 2),
         )#.to(self.device)
-        self.model.load_state_dict(torch.load(os.path.join(load_path, "trained_model.pth")))
-        self.model.eval()
+        
+        if t_type == "GAN" or t_type == "VAE_GAN":
+            self.model.load_state_dict(torch.load(os.path.join(load_path, "trained_model.pth")))
+            self.model.eval()
 
     def __call__(self, data):
         d = dict(data)
@@ -189,7 +218,7 @@ class implant_tumor(MapTransform):
         rs = np.random.random_sample()
         if proba >= rs:
             img, lbl = add_tumor_to_slice(img, lbl, self.t_type, self.model, self.latent_size, self.tumor_shape)#, self.device)
-            
+
         d['image'] = img
         d['label'] = lbl
         return d
