@@ -39,10 +39,10 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 
 ## Top for viewing. Below lines for saving
-# import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('Agg')
+# from matplotlib import pyplot as plt
 
 import tempfile
 import shutil

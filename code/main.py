@@ -2,10 +2,13 @@ from imports import *
 from load_and_run import load_and_run
 ##todo: change the loss to be just for tumors? or emphasize tumor weight
 
-# todo: try a test with tumors but blurred in differently
-# for vae & vaegan
-
 ## generated models are based off the whole train set. so it doesnt make much sense when reducing data size.
+
+
+
+### current results are for inserting a new tumor on every slice. 
+
+### Need to run for tumors on alternating slices
 
 
 if __name__ == '__main__':
@@ -54,17 +57,16 @@ if __name__ == '__main__':
         #             train_transforms = noise_elastic_train_transforms,
         #             val_transforms = val_transforms,
         #             use_all_slices=False)
-            
-           
+                
         ## Real tumour inserted
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-REAL",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = RT_train_transforms,
                     val_transforms = val_transforms)
             
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-REAL",
                     tr_va_split = [60,20,20],
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,

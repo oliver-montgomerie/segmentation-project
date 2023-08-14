@@ -1,5 +1,16 @@
 from imports import *
 
+tumor_deform = Rand2DElasticd(
+    keys = ["im"],
+    prob=1,
+    spacing=(55, 55),
+    magnitude_range=(-1.1,1.1),
+    rotate_range=(np.pi,),
+    #shear_range= (-0.01,0.01),
+    scale_range=(-0.3, 0.1),
+    padding_mode="zeros",
+)
+
 
 load_tumor_transforms = Compose(
     [
@@ -13,8 +24,8 @@ load_tumor_transforms = Compose(
             clip=True,),
         Orientationd(keys=["im"], axcodes="LA"),
         Spacingd(keys=["im"], pixdim=(0.793, 0.793), mode=("bilinear")),
-        #deform,
         ResizeWithPadOrCropd(keys=["im"], spatial_size = [576,576]),
+        tumor_deform,
     ]
 ).flatten() 
 
@@ -42,14 +53,15 @@ def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
 
         return torch.from_numpy(o), torch.from_numpy(mask) #o, mask 
     
-def get_real_tumor(): #, device):
-    #check through tumor pat
+def get_real_tumor(): 
+    #load a random tumour patch and apply augmentation
     folder = "/home/omo23/Documents/tumor-patches-data/Images/"
     got_tumor = False
     
     while not got_tumor:
         file = random.choice(os.listdir(folder))
         fnum = file[:file.rfind("-")] 
+
         if fnum in train_files_nums:
             got_tumor = True
 
@@ -58,11 +70,15 @@ def get_real_tumor(): #, device):
             tumor = tumor['im']
             #np_tumor = tumor
 
-            np_mask = np.zeros(tumor.shape)
-            thresh = (np.max(tumor) + np.min(tumor))/2
+            np_mask = torch.zeros(tumor.shape)
+            thresh = 0.15 #(torch.max(tumor) + torch.min(tumor))/3
             np_mask[tumor > thresh] = 1
+
+            t_size = torch.count_nonzero(np_mask) * tumor.pixdim[0] * tumor.pixdim[1] 
+            if t_size < min_tumor_size:
+                got_tumor = False
    
-    return tumor, torch.from_numpy(np_mask)
+    return tumor, np_mask
 
 
 def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, device):
@@ -124,52 +140,94 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, de
     ## merge images
     #todo: sort this shit
 
-    sobel_h = ndimage.sobel(tumor_lbl[0,:,:], 0)  # horizontal gradient
-    sobel_v = ndimage.sobel(tumor_lbl[0,:,:], 1)  # vertical gradient
-    tumor_edges = np.sqrt(sobel_h**2 + sobel_v**2)
-    tumor_edges = tumor_edges / np.max(tumor_edges)
+    sobel_h = torch.from_numpy(ndimage.sobel(tumor_lbl[0,:,:], 0) ) # horizontal gradient
+    sobel_v = torch.from_numpy(ndimage.sobel(tumor_lbl[0,:,:], 1) ) # vertical gradient
+    tumor_edges = torch.sqrt(sobel_h**2 + sobel_v**2)
+    tumor_edges = tumor_edges / torch.max(tumor_edges)
     #tumor_edges = ndimage.gaussian_filter(tumor_edges, sigma = 0.25)
 
-    edge_locations = np.argwhere(tumor_edges > 0.5)
-    lbl_locations = np.argwhere(tumor_lbl[0,:,:] >= 3)
-    dists = cdist(lbl_locations, edge_locations).min(axis=1)
+    edge_locations = torch.argwhere(tumor_edges > 0.5).to(torch.float)
+    lbl_locations = torch.argwhere(tumor_lbl[0,:,:] >= 3).to(torch.float)
+    #dists = cdist(lbl_locations, edge_locations).min(axis=1)
+    dists, _ = torch.min(torch.cdist(lbl_locations, edge_locations), dim=1)
+    #.min(axis=1)
     distmap = torch.zeros(list(tumor_lbl.size()))
-    distmap[tumor_lbl >= 3] = dists
-    distmap = distmap / (2*np.max(distmap))
-    distmap[distmap>0] = distmap[distmap>0] + 0.5
+    distmap[tumor_lbl >= 3] = torch.add(dists, 1)
+
+    # distmap = distmap / (2*torch.max(distmap))
+    # distmap[distmap>0] = torch.add( distmap[distmap>0] , 0.5)
+    distmap[distmap < 3] = distmap[distmap < 3] / (1.2*torch.max(distmap) )
+    distmap[distmap >= 3] = 1
+    distmap = torch.square(distmap)
 
     gen_img = img.detach().clone() 
     #print(gen_img.size(), tumor_lbl.shape)
     #gen_img[tumor_lbl >= 3] = tumor_img[tumor_lbl >= 3] #(0.8*tumor_img[tumor_lbl >= 3]) + (0.2*gen_img[tumor_lbl >= 3])
     gen_img[tumor_lbl >= 3] = ((distmap*tumor_img)[tumor_lbl >= 3]) + (((1-distmap)*img)[tumor_lbl >= 3])
 
-    plt.figure("New tumor", (18, 6))
-    plt.subplot(2,3,1)
-    plt.imshow(img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    plt.title("Original")
-    plt.axis('off')
-    plt.subplot(2,3,4)
-    plt.imshow(lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    plt.axis('off')
 
-    plt.subplot(2,3,2)
-    plt.imshow(tumor_img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    plt.axis('off')
-    plt.title("Generated tumor")
-    plt.subplot(2,3,5)
-    plt.imshow(tumor_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    plt.axis('off')
+    # ### plots
+    # buffer = 5
+    # rows = torch.any(tumor_img, axis=2)
+    # cols = torch.any(tumor_img, axis=1)
+    # ymin, ymax = torch.where(rows)[1][[0, -1]] 
+    # xmin, xmax = torch.where(cols)[1][[0, -1]] 
+    # ymin = ymin - buffer
+    # ymax = ymax + buffer
+    # xmin = xmin - buffer
+    # xmax = xmax + buffer
 
-    plt.subplot(2,3,3)
-    plt.imshow(gen_img.detach().cpu().numpy()[0,:,:], cmap="gray")
-    plt.title("Implanted tumor")
-    plt.axis('off')
-    plt.subplot(2,3,6)
-    plt.imshow(gen_lbl.detach().cpu().numpy()[0,:,:], vmin=0, vmax=5)
-    plt.axis('off')
+    # plt.figure("New tumour", (18, 6))
+    # plt.subplot(1,2,1)
+    # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Tumour")
+    # plt.axis('off')
 
-    plt.show()
-    plt.pause(1)
+    # plt.subplot(1,2,2)
+    # plt.imshow(distmap.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Distance Map")
+    # plt.axis('off')
+
+    # plt.show()
+    # plt.pause(1)
+
+    # buffer = 5
+    # rows = torch.any(lbl, axis=2)
+    # cols = torch.any(lbl, axis=1)
+    # ymin, ymax = torch.where(rows)[1][[0, -1]] 
+    # xmin, xmax = torch.where(cols)[1][[0, -1]] 
+    # ymin = ymin - buffer
+    # ymax = ymax + buffer
+    # xmin = xmin - buffer
+    # xmax = xmax + buffer
+
+    # plt.figure("New tumor", (18, 6))
+    # plt.subplot(2,3,1)
+    # plt.imshow(img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Original")
+    # plt.axis('off')
+    # plt.subplot(2,3,4)
+    # plt.imshow(lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # plt.axis('off')
+
+    # plt.subplot(2,3,2)
+    # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.axis('off')
+    # plt.title("New tumor")
+    # plt.subplot(2,3,5)
+    # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # plt.axis('off')
+
+    # plt.subplot(2,3,3)
+    # plt.imshow(gen_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Implanted tumor")
+    # plt.axis('off')
+    # plt.subplot(2,3,6)
+    # plt.imshow(gen_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # plt.axis('off')
+
+    # plt.show()
+    # plt.pause(1)
 
     gen_lbl[gen_lbl >= 3] = 2 
 

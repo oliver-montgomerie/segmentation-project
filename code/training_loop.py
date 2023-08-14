@@ -21,14 +21,20 @@ class EarlyStopper:
     
 
 def save_train_images(batch_data, save_path):
-    images, _ = (
+    images, labels = (
         batch_data["image"],
         batch_data["label"],
     )
     for i in range(images.shape[0]):
         plt.figure("Training data", (18, 6))
+        plt.subplot(1,2,1)
         plt.axis('off')
         plt.imshow(images[i,0,:,:].detach().cpu(), cmap="gray")
+
+        plt.subplot(1,2,2)
+        plt.axis('off')
+        plt.imshow(labels[i,0,:,:].detach().cpu(), vmin =0, vmax =2)
+
         fpath = batch_data['image_meta_dict']['filename_or_obj'][i]
         fpath = fpath[fpath.rfind("/")+1:-4] 
         fname = "training-batch/img-" + fpath + ".png"
@@ -77,12 +83,13 @@ def training_loop(model,
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-            #print(f"{step}/{len(train_loader)}, " f"train_loss: {loss.item():.4f}")
+            print(f"{step}/{len(train_loader)}, " f"train_loss: {loss.item():.4f}")
 
         scheduler.step()
         epoch_loss /= step
         epoch_loss_values.append(epoch_loss)
         print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
+        torch.save(model.state_dict(), os.path.join(save_path, "epoch-" + str(epoch) + "-model.pth"))
 
         #validation 
         if (epoch + 1) % val_interval == 0:
