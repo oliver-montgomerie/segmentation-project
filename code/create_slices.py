@@ -9,6 +9,8 @@ def stuff():
     lbl_save_path = "/home/omo23/Documents/sliced-data/Labels"
     
     for i in range(131):
+        print(i)
+        # i=48
         # img_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/imagesTr/volume-" + str(i) + ".nii"  
         # lbl_path = "C:/Users/olive/OneDrive/Desktop/Liver Files/labelsTr/segmentation-" + str(i) + ".nii"
         img_path = "/data/datasets/Liver/LiTS2017/Volumes/volume-" + str(i) + ".nii"
@@ -16,15 +18,21 @@ def stuff():
         img = nib.load(img_path)
         lbl = nib.load(lbl_path)
 
+        # print(img.header)
+        # print(lbl.header)
+
+        # print(img.affine)
+        # print(lbl.affine)
+
         np_img = np.array(img.dataobj)
         np_lbl = np.array(lbl.dataobj)
 
         for z in range(np_lbl.shape[-1]):
             lbl_slice = np_lbl[:,:,z]
-            liver_size = np.sum(lbl_slice == 1) * lbl.header['pixdim'][1] * lbl.header['pixdim'][2]
+            liver_size = np.sum(lbl_slice == 1) * img.header['pixdim'][1] * img.header['pixdim'][2]
             if liver_size > min_liver_size:
-                ni_img = nib.Nifti1Image(np_img[:,:,z], img.affine) #, img.header (?)
-                ni_lbl = nib.Nifti1Image(np_lbl[:,:,z], lbl.affine)
+                ni_img = nib.Nifti1Image(np_img[:,:,z], img.affine, img.header) #, img.header (?)
+                ni_lbl = nib.Nifti1Image(np_lbl[:,:,z], img.affine, img.header)
                 nib.save(ni_img, os.path.join(img_save_path, str(i) + "-" + str(z) + ".nii"))
                 nib.save(ni_lbl, os.path.join(lbl_save_path, str(i) + "-" + str(z) + ".nii"))
 

@@ -50,6 +50,22 @@ class flip_if_liver_on_right(MapTransform):
         return d
     
 
+# class copy_meta(MapTransform):
+#     def __init__(self, img_key, lbl_key):
+#         self.img_key = img_key
+#         self.lbl_key = lbl_key
+
+#     def __call__(self, data):
+#         d = dict(data)
+#         img = d[self.img_key]
+#         lbl = d[self.lbl_key]
+
+#         #lbl.copy_meta_from(img)
+#         lbl.meta = img.meta
+
+#         d[self.label_key] = lbl
+
+#         return d
 
 load_slice_transforms = Compose(
     [
@@ -63,11 +79,11 @@ load_slice_transforms = Compose(
             b_max=1.0,
             clip=True,
         ),
-        Orientationd(keys=["image", "label"], axcodes="LA"),
+        Orientationd(keys=["image", "label"], axcodes="LA"), 
         Rotate90d(["image", "label"], k=1, spatial_axes=(0, 1)),
-        #flip_if_liver_on_right(keys=["image", "label"], label_key="label"),
+        flip_if_liver_on_right(keys=["image", "label"], label_key="label"),
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [800,800]),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [640,640]),
     ]
 )
 

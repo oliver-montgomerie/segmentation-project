@@ -26,6 +26,10 @@ def save_train_images(batch_data, save_path):
         batch_data["label"],
     )
     for i in range(images.shape[0]):
+        fpath = batch_data['image_meta_dict']['filename_or_obj'][i]
+        fpath = fpath[fpath.rfind("/")+1:-4] 
+        fname = "training-batch/img-" + fpath + ".png"
+
         plt.figure("Training data", (18, 6))
         plt.subplot(1,2,1)
         plt.axis('off')
@@ -35,12 +39,12 @@ def save_train_images(batch_data, save_path):
         plt.axis('off')
         plt.imshow(labels[i,0,:,:].detach().cpu(), vmin =0, vmax =2)
 
-        fpath = batch_data['image_meta_dict']['filename_or_obj'][i]
-        fpath = fpath[fpath.rfind("/")+1:-4] 
-        fname = "training-batch/img-" + fpath + ".png"
         plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
         plt.close()
 
+        # plt.suptitle(fpath)
+        # plt.show()
+        # plt.pause(1)
     return
 
 
@@ -79,6 +83,25 @@ def training_loop(model,
                 save_train_images(batch_data, save_path)
             optimizer.zero_grad()
             outputs = model(inputs)
+
+            # plt.figure("Training data", (18, 6))
+            # plt.subplot(1,4,1)
+            # plt.axis('off')
+            # plt.imshow(outputs[0,0,:,:].detach().cpu(), cmap="gray")
+            # plt.subplot(1,4,2)
+            # plt.axis('off')
+            # plt.imshow(outputs[0,1,:,:].detach().cpu(), cmap="gray")
+            # plt.subplot(1,4,3)
+            # plt.axis('off')
+            # plt.imshow(outputs[0,2,:,:].detach().cpu(), cmap="gray")
+
+            # plt.subplot(1,4,4)
+            # plt.axis('off')
+            # plt.imshow(labels[0,0,:,:].detach().cpu(), vmin =0, vmax =2)
+
+            # plt.show()
+            # plt.pause(1)
+
             loss = loss_function(outputs, labels)
             loss.backward()
             optimizer.step()

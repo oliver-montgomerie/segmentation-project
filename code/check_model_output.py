@@ -21,8 +21,8 @@ def calc_dice(pred, gt, show_print=False):
 
 
 def check_model_output(save_path, model, dice_metric, data_loader, device, num_test_files):
-    #model_path = os.path.join(save_path, "best_metric_model.pth")
-    model_path = os.path.join(save_path, "epoch-1-model.pth")
+    model_path = os.path.join(save_path, "best_metric_model.pth")
+    #model_path = os.path.join(save_path, "epoch-3-model.pth")
     model.load_state_dict(torch.load(model_path))
     model.eval()
     tumors_detected = np.empty((0,2), float)
@@ -38,24 +38,40 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             #get predicted output
             test_outputs = model(test_inputs)
             
-            plt.figure("Comparison", (18, 6))      
-            plt.subplot(1, 2, 1)
-            plt.title(f"input")
-            plt.imshow(test_inputs[0,0,:,:].detach().cpu())
+            # plt.figure("Comparison", (18, 6))      
+            # plt.subplot(2, 3, 1)
+            # plt.title(f"input")
+            # plt.imshow(test_inputs[0,0,:,:].detach().cpu())
 
-            plt.subplot(1, 2, 2)
-            plt.title(f"output")
-            plt.imshow(test_outputs[0,0,:,:].detach().cpu())
-            plt.show()
-            plt.pause(1)
+            # plt.subplot(2, 3, 2)
+            # plt.title(f"output")
+            # plt.imshow(test_outputs[0,0,:,:].detach().cpu())
+            # plt.show()
+            # plt.pause(1)
 
             test_outputs = predict_segmentation(test_outputs, mutually_exclusive=True) # .detach().cpu()
 
-
             one_hot_out = one_hot(test_outputs, num_classes=3, dim=1)
+
+            # plt.subplot(2, 3, 4)
+            # plt.imshow(one_hot_out[0,0,:,:].detach().cpu())
+            # plt.subplot(2, 3, 5)
+            # plt.imshow(one_hot_out[0,1,:,:].detach().cpu())
+            # plt.subplot(2, 3, 6)
+            # plt.imshow(one_hot_out[0,2,:,:].detach().cpu())
 
             #find overall dice score between truth and predicted
             one_hot_labels = one_hot(test_labels, num_classes=3, dim=1)
+
+            # plt.subplot(2, 3, 1)
+            # plt.imshow(one_hot_labels[0,0,:,:].detach().cpu())
+            # plt.subplot(2, 3, 2)
+            # plt.imshow(one_hot_labels[0,1,:,:].detach().cpu())
+            # plt.subplot(2, 3, 3)
+            # plt.imshow(one_hot_labels[0,2,:,:].detach().cpu())
+            # plt.show()
+            # plt.pause(1)
+
             dice_metric(y_pred=one_hot_out, y=one_hot_labels)
 
             x = dice_metric.get_buffer() #just has the dice values so we print it in plot
@@ -115,10 +131,10 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     fpath = test_data['image_meta_dict']['filename_or_obj'][b_item]
                     fpath = fpath[fpath.rfind("/")+1:-4] 
                     fname = "test-comparisons/pred-" + fpath + ".png"
-                    # plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
-                    # plt.close()
-                    plt.show()
-                    plt.pause(1)
+                    plt.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+                    plt.close()
+                    # plt.show()
+                    # plt.pause(1)
 
         print(f"{i}/{len(data_loader)}")
         
@@ -229,52 +245,52 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 
-# #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-normal-VAE"
-num_workers = 1
-batch_size = 16 
+# # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-normal-REAL"
+# num_workers = 4
+# batch_size = 16 
 
-#Data loading
-data_dir = "/home/omo23/Documents/sliced-data"
-all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
-all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
-data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+# #Data loading
+# data_dir = "/home/omo23/Documents/sliced-data"
+# all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+# all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+# data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
 
-# filter out slices with small tumor area
-data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
+# # filter out slices with small tumor area
+# data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
 
-test_files = []
-for d in data_dicts:
-    d_num = d['image']
-    d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
-    if d_num in test_files_nums:
-        test_files.append(d)
+# test_files = []
+# for d in data_dicts:
+#     d_num = d['image']
+#     d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
+#     if d_num in test_files_nums:
+#         test_files.append(d)
 
-## sort test files smallest to largest tumor
-test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
+# ## sort test files smallest to largest tumor
+# test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-model = UNet(
-    spatial_dims=2,
-    in_channels=1,
-    out_channels=3,
-    channels=(16, 32, 64, 128, 256),
-    strides=(2, 2, 2, 2),
-    num_res_units=2,
-    norm=Norm.BATCH,
-).to(device)
+# model = UNet(
+#     spatial_dims=2,
+#     in_channels=1,
+#     out_channels=3,
+#     channels=(16, 32, 64, 128, 256),
+#     strides=(2, 2, 2, 2),
+#     num_res_units=2,
+#     norm=Norm.BATCH,
+# ).to(device)
 
-from transforms import test_transforms
-#test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
-test_ds = Dataset(data=test_files, transform=test_transforms)
-test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+# from transforms import test_transforms
+# #test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+# test_ds = Dataset(data=test_files, transform=test_transforms)
+# test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-testset_dice_metric = DiceMetric(include_background=False, reduction="none")
+# testset_dice_metric = DiceMetric(include_background=False, reduction="none")
 
-testset_dice = check_model_output(save_path = save_path, 
-                    model = model, 
-                    dice_metric = testset_dice_metric,
-                    data_loader = test_loader,
-                    device = device,
-                    num_test_files = len(test_files))
+# testset_dice = check_model_output(save_path = save_path, 
+#                     model = model, 
+#                     dice_metric = testset_dice_metric,
+#                     data_loader = test_loader,
+#                     device = device,
+#                     num_test_files = len(test_files))

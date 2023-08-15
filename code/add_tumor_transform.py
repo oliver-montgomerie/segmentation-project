@@ -68,7 +68,6 @@ def get_real_tumor():
             load_d = {"im": os.path.join(folder, file)}
             tumor = load_tumor_transforms(load_d)
             tumor = tumor['im']
-            #np_tumor = tumor
 
             np_mask = torch.zeros(tumor.shape)
             thresh = 0.15 #(torch.max(tumor) + torch.min(tumor))/3
@@ -82,7 +81,6 @@ def get_real_tumor():
 
 
 def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, device):
-    #todo: change function to torch instead of numpy ?why
     dist = torch.distributions.normal.Normal(torch.tensor(0.0), torch.tensor(1.0))
 
     liver_pix = torch.argwhere(lbl == 1)
@@ -131,11 +129,10 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, de
             good_placement = True
             break #good
 
-        # Todo: add a probability for repeating the process for adding multiple tumors.
-        # look at ratio in other slices and use that??
+        # Possible Todo: add a probability for repeating the process for adding multiple tumors.
 
     if good_placement == False:
-        return img, lbl #torch.unsqueeze(torch.from_numpy(img), 0), torch.unsqueeze(torch.from_numpy(lbl), 0)
+        return img, lbl 
         
     ## merge images
     #todo: sort this shit
@@ -240,7 +237,10 @@ class implant_tumor(MapTransform):
         #model shape should definetly be saved in a config somewhere instead of this...
         self.keys = keys
 
-        self.t_type = t_type #real, vae, vae-gan, diffusion...
+        self.t_type = t_type #REAL, VAE, VAE-GAN, DIFF... 
+
+        if self.t_type == "REAL":
+            pass
 
         self.tumor_shape = [1,256,256]
         self.latent_size = 5
