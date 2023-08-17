@@ -33,8 +33,8 @@ def stuff():
             if liver_size > min_liver_size:
                 ni_img = nib.Nifti1Image(np_img[:,:,z], img.affine, img.header) #, img.header (?)
                 ni_lbl = nib.Nifti1Image(np_lbl[:,:,z], img.affine, img.header)
-                nib.save(ni_img, os.path.join(img_save_path, str(i) + "-" + str(z) + ".nii"))
-                nib.save(ni_lbl, os.path.join(lbl_save_path, str(i) + "-" + str(z) + ".nii"))
+                nib.save(ni_img, os.path.join(img_save_path, str(i) + "-" + str(z+1) + ".nii"))
+                nib.save(ni_lbl, os.path.join(lbl_save_path, str(i) + "-" + str(z+1) + ".nii"))
 
 
         # tumor_in_slice = np.sum((np_lbl == 2).reshape(-1, np_lbl.shape[-1]), axis=0)

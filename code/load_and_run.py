@@ -59,11 +59,10 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
     ###datasets
-    #train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
-    train_ds = Dataset(data=train_files, transform=train_transforms)
+    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
-    train_ds = Dataset(data=train_files, transform=train_transforms)
-    val_ds = Dataset(data=val_files, transform=val_transforms)
+    # train_ds = Dataset(data=train_files, transform=train_transforms)
+    # val_ds = Dataset(data=val_files, transform=val_transforms)
     
     ###dataloaders
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers) 

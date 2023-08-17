@@ -50,23 +50,6 @@ class flip_if_liver_on_right(MapTransform):
         return d
     
 
-# class copy_meta(MapTransform):
-#     def __init__(self, img_key, lbl_key):
-#         self.img_key = img_key
-#         self.lbl_key = lbl_key
-
-#     def __call__(self, data):
-#         d = dict(data)
-#         img = d[self.img_key]
-#         lbl = d[self.lbl_key]
-
-#         #lbl.copy_meta_from(img)
-#         lbl.meta = img.meta
-
-#         d[self.label_key] = lbl
-
-#         return d
-
 load_slice_transforms = Compose(
     [
         LoadImaged(keys=["image", "label"], image_only=False),
@@ -240,17 +223,63 @@ check_transforms = Compose(
     ]
 ).flatten() 
 
+
+tumor_deform = Rand2DElasticd(
+    keys = ["im"],
+    prob=1,
+    spacing=(55, 55),
+    magnitude_range=(-1.1,1.1),
+    rotate_range=(np.pi,),
+    #shear_range= (-0.01,0.01),
+    scale_range=(-0.3, 0.1),
+    padding_mode="zeros",
+)
+
+load_tumor_transforms = Compose(
+    [
+        LoadImaged(keys=["im"], image_only=False),
+        EnsureChannelFirstd(keys=["im"]),
+        ScaleIntensityRanged(keys=["im"],
+            a_min=-200,
+            a_max=200,
+            b_min=0.0,
+            b_max=1.0,
+            clip=True,),
+        Orientationd(keys=["im"], axcodes="LA"),
+        Spacingd(keys=["im"], pixdim=(0.793, 0.793), mode=("bilinear")),
+        ResizeWithPadOrCropd(keys=["im"], spatial_size = [640,640]),
+        tumor_deform,
+    ]
+).flatten() 
+
+im_dir = "/home/omo23/Documents/tumor-patches-data/Images"
+tumor_filenames = [os.path.join(im_dir, filename) for filename in os.listdir(im_dir)]
+test_files, val_files, train_files = [], [], []
+for file in tumor_filenames:
+    f_num = file[file.rfind("/")+1:file.rfind("-")] 
+
+    if f_num in val_files_nums:
+        val_files.append(file)
+    if f_num in train_files_nums:  #run_train_files_nums
+        train_files.append(file)
+
+tumor_datadict = [{"im": fname} for fname in train_files]
+
+tumor_ds = CacheDataset(tumor_datadict, load_tumor_transforms, cache_rate=1.0, num_workers=1)
+tumor_dl = DataLoader(tumor_ds, batch_size=1, shuffle=True, num_workers=1)
+
+
 RT_train_transforms = Compose(  #rt real tumor
     [
         load_slice_transforms,
-        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = ""),
+        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = "", tumor_dl = tumor_dl),
     ]
 ).flatten()
 
 aug_RT_train_transforms = Compose(
     [
         load_slice_transforms,
-        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = ""),
+        implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = "", tumor_dl = tumor_dl),
         deform,
         RandGaussianNoised(keys=["image"], prob=0.5, mean=0.0, std=0.2),
     ]

@@ -2,11 +2,10 @@ from imports import *
 from load_and_run import load_and_run
 ##todo: change the loss to be just for tumors? or emphasize tumor weight
 
-## generated models are based off the whole train set. so it doesnt make much sense when reducing data size.
+## generated models are based off the whole train set. so it doesnt make much sense when reducing data size. (?)
 
 
 ### current results are for inserting a new tumor on every slice. 
-
 ### Need to run for tumors on empty slices
 
 
@@ -40,22 +39,8 @@ if __name__ == '__main__':
     for run_attempt in range(3):
         for f in fraction_of_train_data:
 
-        ## all slices 
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-all_slice",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = train_transforms,
-                    val_transforms = val_transforms)
-            
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-all_slice",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = noise_elastic_train_transforms,
-                    val_transforms = val_transforms)
-
-
         ## Real tumour inserted
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-REAL",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-REAL",
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = RT_train_transforms,
@@ -67,8 +52,23 @@ if __name__ == '__main__':
                     train_transforms = aug_RT_train_transforms,
                     val_transforms = val_transforms)
 
+
+        ## all slices 
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = train_transforms,
+                    val_transforms = val_transforms)
+            
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-normal",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = noise_elastic_train_transforms,
+                    val_transforms = val_transforms)
+
+
         ## VAE 
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-VAE",
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = VAE_train_transforms,
@@ -80,8 +80,9 @@ if __name__ == '__main__':
                     train_transforms = aug_VAE_train_transforms,
                     val_transforms = val_transforms)
             
+
         ## VAE-GAN 
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal"+"-VAE_GAN",
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-VAE_GAN",
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = VAE_GAN_train_transforms,
@@ -96,7 +97,7 @@ if __name__ == '__main__':
 
 
         # ## filtered for tumor slices data
-        #     load_and_run(save_path = save_path + str(run_attempt) + str(f) +"-normal",
+        #     load_and_run(save_path = save_path + str(run_attempt) + str(f) ,
         #             tr_va_split = [60,20,20],
         #             percentage_of_data = f,
         #             number_of_epochs = max_epochs,
