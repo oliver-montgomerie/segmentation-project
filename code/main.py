@@ -51,21 +51,7 @@ if __name__ == '__main__':
                     number_of_epochs = max_epochs,
                     train_transforms = aug_RT_train_transforms,
                     val_transforms = val_transforms)
-
-
-        ## all slices 
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-normal",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = train_transforms,
-                    val_transforms = val_transforms)
             
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-normal",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = noise_elastic_train_transforms,
-                    val_transforms = val_transforms)
-
 
         ## VAE 
             load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-VAE",
@@ -79,7 +65,8 @@ if __name__ == '__main__':
                     number_of_epochs = max_epochs,
                     train_transforms = aug_VAE_train_transforms,
                     val_transforms = val_transforms)
-            
+
+
 
         ## VAE-GAN 
             load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-VAE_GAN",
@@ -93,6 +80,26 @@ if __name__ == '__main__':
                     number_of_epochs = max_epochs,
                     train_transforms = aug_VAE_GAN_train_transforms,
                     val_transforms = val_transforms)
+
+
+        ## all slices 
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-standard",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = train_transforms,
+                    val_transforms = val_transforms)
+            
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-standard",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = noise_elastic_train_transforms,
+                    val_transforms = val_transforms)
+
+
+
+            
+
+
 
 
 

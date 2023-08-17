@@ -245,52 +245,52 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 
-# # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-normal-all_slice"
-num_workers = 4
-batch_size = 16 
+# # # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-standard"
+# num_workers = 4
+# batch_size = 16 
 
-#Data loading
-data_dir = "/home/omo23/Documents/sliced-data"
-all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
-all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
-data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
+# #Data loading
+# data_dir = "/home/omo23/Documents/sliced-data"
+# all_images = sorted(glob.glob(os.path.join(data_dir, "Images", "*.nii")))
+# all_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
+# data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
 
-# filter out slices with small tumor area
-data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
+# # filter out slices with small tumor area
+# data_dicts = [item for item in data_dicts if file_tumor_size(item) > min_tumor_size]
 
-test_files = []
-for d in data_dicts:
-    d_num = d['image']
-    d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
-    if d_num in test_files_nums:
-        test_files.append(d)
+# test_files = []
+# for d in data_dicts:
+#     d_num = d['image']
+#     d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")] 
+#     if d_num in test_files_nums:
+#         test_files.append(d)
 
-## sort test files smallest to largest tumor
-test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
+# ## sort test files smallest to largest tumor
+# test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-model = UNet(
-    spatial_dims=2,
-    in_channels=1,
-    out_channels=3,
-    channels=(16, 32, 64, 128, 256),
-    strides=(2, 2, 2, 2),
-    num_res_units=2,
-    norm=Norm.BATCH,
-).to(device)
+# model = UNet(
+#     spatial_dims=2,
+#     in_channels=1,
+#     out_channels=3,
+#     channels=(16, 32, 64, 128, 256),
+#     strides=(2, 2, 2, 2),
+#     num_res_units=2,
+#     norm=Norm.BATCH,
+# ).to(device)
 
-from transforms import test_transforms
-test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
-#test_ds = Dataset(data=test_files, transform=test_transforms)
-test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+# from transforms import test_transforms
+# test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)
+# #test_ds = Dataset(data=test_files, transform=test_transforms)
+# test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-testset_dice_metric = DiceMetric(include_background=False, reduction="none")
+# testset_dice_metric = DiceMetric(include_background=False, reduction="none")
 
-testset_dice = check_model_output(save_path = save_path, 
-                    model = model, 
-                    dice_metric = testset_dice_metric,
-                    data_loader = test_loader,
-                    device = device,
-                    num_test_files = len(test_files))
+# testset_dice = check_model_output(save_path = save_path, 
+#                     model = model, 
+#                     dice_metric = testset_dice_metric,
+#                     data_loader = test_loader,
+#                     device = device,
+#                     num_test_files = len(test_files))

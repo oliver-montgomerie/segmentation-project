@@ -23,7 +23,7 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
         print(save_path, " Folder already exists. Quitting...")
         return None
 
-    num_workers = 4
+    num_workers = 8
     batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
@@ -59,7 +59,7 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
     ###datasets
-    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers)
+    train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers) # 0.5
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
     # train_ds = Dataset(data=train_files, transform=train_transforms)
     # val_ds = Dataset(data=val_files, transform=val_transforms)
