@@ -50,7 +50,7 @@ def check_data():
     check_ds = Dataset(data=check_files, transform=load_slice_transforms)
 
     ###dataloaders
-    check_loader = DataLoader(check_ds, batch_size=1, shuffle=False, num_workers=1)
+    check_loader = DataLoader(check_ds, batch_size=1, shuffle=False, num_workers=8)
 
 
     ###create empty write file
@@ -60,6 +60,7 @@ def check_data():
 
     oldfnum = -1
     for i, test_data in enumerate(check_loader):
+        #print(i)
         test_inputs, test_labels = (
             test_data["image"],
             test_data["label"],
@@ -68,11 +69,20 @@ def check_data():
         fpath = fpath[fpath.rfind("/")+1:-4] 
         fnum = fpath[0:fpath.rfind("-")] 
 
-        if fnum != oldfnum:
-            oldfnum = fnum
-            view_images(test_data, "")
+        # if fnum != oldfnum:
+        #     oldfnum = fnum
+        #     view_images(test_data, "")
 
+        # num_lbl_1 = np.sum(test_labels == 1).T.item()
         # num_lbl_2 = np.sum(test_labels == 2).T.item()
+
+        num_lbl_1 = torch.sum(test_labels == 1).item()
+
+        if num_lbl_1 < 50:
+            print(fpath, num_lbl_1)
+
+        # if num_lbl_2 < 50:
+        #     print(fpath, num_lbl_2)
 
         # tumors = test_labels[0,0,:,:]
         # tumors[tumors == 1] = 0
