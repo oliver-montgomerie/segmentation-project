@@ -1,5 +1,33 @@
 from imports import *
 
+tumor_deform = Rand2DElasticd(
+    keys = ["im"],
+    prob=1,
+    spacing=(55, 55),
+    magnitude_range=(-1.1,1.1),
+    rotate_range=(np.pi,),
+    #shear_range= (-0.01,0.01),
+    scale_range=(-0.3, 0.1),
+    padding_mode="zeros",
+)
+
+load_tumor_transforms = Compose(
+    [
+        LoadImaged(keys=["im"], image_only=False),
+        EnsureChannelFirstd(keys=["im"]),
+        ScaleIntensityRanged(keys=["im"],
+            a_min=-200,
+            a_max=200,
+            b_min=0.0,
+            b_max=1.0,
+            clip=True,),
+        Orientationd(keys=["im"], axcodes="LA"),
+        Spacingd(keys=["im"], pixdim=(0.793, 0.793), mode=("bilinear")),
+        ResizeWithPadOrCropd(keys=["im"], spatial_size = [640,640]),
+        tumor_deform,
+    ]
+).flatten() 
+
 def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
     with torch.no_grad():
         sample = torch.zeros(1, latent_size) #.to(device)
@@ -8,12 +36,15 @@ def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
             sample[0,s] = dist.icdf((torch.rand(1)*0.9) + 0.05)
 
         o = model.decode_forward(sample) #get output from latent sample
-        o = o.detach().cpu().numpy().reshape(tumor_shape)
-        mask = np.zeros(o.shape)    #create mask from thresholding tumor
-        thresh = (np.max(o) + np.min(o))/2
+        #o = o.detach().cpu().numpy().reshape(tumor_shape)
+        #o = torch.reshape(o, )
+
+        mask = torch.zeros(o.shape)    #create mask from thresholding tumor
+        thresh = (torch.max(o) + torch.min(o))/2
         mask[o > thresh] = 1
-        #clip the tumor to the mask size
-        o[mask != 1] = 0
+
+        #clip the tumor to the mask size ... or not'. let the distance map do this part
+        #o[mask != 1] = 0
 
         # # make sure its large enough
         # tumor_size = np.sum(mask == 1) * 0.793 * 0.793
@@ -21,22 +52,49 @@ def generate_a_tumor(model, latent_size, dist, tumor_shape): #, device):
         # if tumor_size < min_tumor_size:
         #     continue
 
-        return torch.from_numpy(o), torch.from_numpy(mask) #o, mask 
+        return o, mask #o, mask  
     
-def get_real_tumor(tumor_dl): 
+# def get_real_tumor(tumor_dl): 
+#     #load a random tumour
+#     got_tumor = False
+    
+#     while not got_tumor:
+
+#         tumor = next(iter(tumor_dl))
+#         tumor = tumor['im']
+
+#         fnum = tumor.meta['filename_or_obj'][0]
+#         fnum = fnum[fnum.rfind("/")+1:fnum.rfind("-")]
+
+#         if fnum in train_files_nums:
+#             got_tumor = True
+
+#             np_mask = torch.zeros(tumor.shape)
+#             thresh = 0.15 #(torch.max(tumor) + torch.min(tumor))/3
+#             np_mask[tumor > thresh] = 1
+
+#             # print(tumor.pixdim[0])
+#             # t_size = torch.count_nonzero(np_mask) * tumor.pixdim[0][0] * tumor.pixdim[0][1] 
+#             # if t_size < min_tumor_size:
+#             #     got_tumor = False
+   
+#     return tumor, np_mask
+
+def get_real_tumor(): 
     #load a random tumour
     got_tumor = False
+    folder = "/home/omo23/Documents/tumor-patches-data/Images/"
     
     while not got_tumor:
-
-        tumor = next(iter(tumor_dl))
-        tumor = tumor['im']
-
-        fnum = tumor.meta['filename_or_obj'][0]
-        fnum = fnum[fnum.rfind("/")+1:fnum.rfind("-")]
-
+        file = random.choice(os.listdir(folder))
+        fnum = file[:file.rfind("-")] 
+    
         if fnum in train_files_nums:
             got_tumor = True
+
+            load_d = {"im": os.path.join(folder, file)}
+            tumor = load_tumor_transforms(load_d)
+            tumor = tumor['im']
 
             np_mask = torch.zeros(tumor.shape)
             thresh = 0.15 #(torch.max(tumor) + torch.min(tumor))/3
@@ -50,7 +108,8 @@ def get_real_tumor(tumor_dl):
     return tumor, np_mask
 
 
-def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_dl): #, device):
+
+def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape): #, device):
     dist = torch.distributions.normal.Normal(torch.tensor(0.0), torch.tensor(1.0))
 
     liver_pix = torch.argwhere(lbl == 1)
@@ -59,13 +118,26 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_
     good_placement = False
     for attempt in range(max_attempts):
         if t_type == "REAL":
-            tumor_img, tumor_lbl = get_real_tumor(tumor_dl) #could pass train file nums?
-            tumor_img = tumor_img[0,:,:,:]
-            #tumor_img = torch.squeeze(tumor_img, 0)
-            #tumor_lbl = torch.squeeze(tumor_lbl, 0).int()
-            tumor_lbl = tumor_lbl[0,:,:,:].int()
+            tumor_img, tumor_lbl = get_real_tumor() #could pass train file nums?
+            #tumor_img = tumor_img[0,:,:,:]
+            #tumor_lbl = tumor_lbl[0,:,:,:].int()
         else:
             tumor_img, tumor_lbl = generate_a_tumor(model, latent_size, dist, tumor_shape) #, device)
+            tumor_img = tumor_img[0,:,:,:]
+            tumor_lbl = tumor_lbl[0,:,:,:].int()
+
+        # plt.figure("New tumour", (18, 6))
+        # plt.subplot(1,2,1)
+        # plt.imshow(tumor_img.detach().cpu().numpy()[0,:, :], cmap="gray", vmin=0, vmax=1)
+        # plt.axis('off')
+
+        # plt.subplot(1,2,2)
+        # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,:, :], cmap="gray", vmin=0, vmax=1)
+        # plt.axis('off')
+
+        # plt.show()
+        # plt.pause(1)
+
 
         # pad to slice size
         pad_size = [img.size(dim=1) - tumor_img.size(dim=1), img.size(dim=2) - tumor_img.size(dim=2)]
@@ -130,26 +202,15 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_
     distmap = torch.square(distmap)
 
     gen_img = img.detach().clone() 
-    #print(gen_img.size(), tumor_lbl.shape)
+
     #gen_img[tumor_lbl >= 3] = tumor_img[tumor_lbl >= 3] #(0.8*tumor_img[tumor_lbl >= 3]) + (0.2*gen_img[tumor_lbl >= 3])
-
-    # t1 = 1-distmap
-    # t2 = t1 * img
-    # t3 = t2[tumor_lbl >= 3]
-
-    # t5 = distmap * tumor_img # torch.mul(distmap,tumor_img)
-    # t6 = t5[tumor_lbl >= 3]
-
-    # gen_img[tumor_lbl >= 3] = t6 + t3
-
-    # temp = ((1-distmap)*img)[tumor_lbl >= 3]
     gen_img[tumor_lbl >= 3] = ((distmap*tumor_img)[tumor_lbl >= 3]) + ((1-distmap)*img)[tumor_lbl >= 3]
 
 
     # ### plots
     buffer = 5
-    rows = torch.any(tumor_img, axis=2)
-    cols = torch.any(tumor_img, axis=1)
+    rows = torch.any(tumor_lbl, axis=2)
+    cols = torch.any(tumor_lbl, axis=1)
     ymin, ymax = torch.where(rows)[1][[0, -1]] 
     xmin, xmax = torch.where(cols)[1][[0, -1]] 
     ymin = ymin - buffer
@@ -157,19 +218,19 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_
     xmin = xmin - buffer
     xmax = xmax + buffer
 
-    # plt.figure("New tumour", (18, 6))
-    # plt.subplot(1,2,1)
-    # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Tumour")
-    # plt.axis('off')
+    plt.figure("New tumour", (18, 6))
+    plt.subplot(1,2,1)
+    plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    plt.title("Tumour")
+    plt.axis('off')
 
-    # plt.subplot(1,2,2)
-    # plt.imshow(distmap.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Distance Map")
-    # plt.axis('off')
+    plt.subplot(1,2,2)
+    plt.imshow(distmap.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    plt.title("Distance Map")
+    plt.axis('off')
 
-    # plt.show()
-    # plt.pause(1)
+    plt.show()
+    plt.pause(1)
 
     buffer = 5
     rows = torch.any(lbl, axis=2)
@@ -181,33 +242,33 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_
     xmin = xmin - buffer
     xmax = xmax + buffer
 
-    # plt.figure("New tumor", (18, 6))
-    # plt.subplot(2,3,1)
-    # plt.imshow(img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Original")
-    # plt.axis('off')
-    # plt.subplot(2,3,4)
-    # plt.imshow(lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.figure("New tumor", (18, 6))
+    plt.subplot(2,3,1)
+    plt.imshow(img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    plt.title("Original")
+    plt.axis('off')
+    plt.subplot(2,3,4)
+    plt.imshow(lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.subplot(2,3,2)
-    # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.axis('off')
-    # plt.title("New tumor")
-    # plt.subplot(2,3,5)
-    # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.subplot(2,3,2)
+    plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    plt.axis('off')
+    plt.title("New tumor")
+    plt.subplot(2,3,5)
+    plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.subplot(2,3,3)
-    # plt.imshow(gen_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Implanted tumor")
-    # plt.axis('off')
-    # plt.subplot(2,3,6)
-    # plt.imshow(gen_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
-    # plt.axis('off')
+    plt.subplot(2,3,3)
+    plt.imshow(gen_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    plt.title("Implanted tumor")
+    plt.axis('off')
+    plt.subplot(2,3,6)
+    plt.imshow(gen_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    plt.axis('off')
 
-    # plt.show()
-    # plt.pause(1)
+    plt.show()
+    plt.pause(1)
 
     gen_lbl[gen_lbl >= 3] = 2 
 
@@ -216,16 +277,16 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size, tumor_shape, tumor_
 
 
 class implant_tumor(MapTransform):
-    def __init__(self, keys, t_type, load_path, tumor_dl = None):
+    def __init__(self, keys, t_type, load_path):
         #model shape should definetly be saved in a config somewhere instead of this...
         self.keys = keys
 
         self.t_type = t_type #REAL, VAE, VAE-GAN, DIFF... 
 
-        if self.t_type == "REAL":
-            self.tumor_dl = tumor_dl
-        else:
-            self.tumor_dl = None
+        # if self.t_type == "REAL":
+        #     self.tumor_dl = tumor_dl
+        # else:
+        #     self.tumor_dl = None
 
 
         self.tumor_shape = [1,256,256]
@@ -241,7 +302,7 @@ class implant_tumor(MapTransform):
             strides=(1, 2, 2, 2, 2),
         )#.to(self.device)
         
-        if t_type == "GAN" or t_type == "VAE_GAN":
+        if t_type == "VAE" or t_type == "VAE_GAN":
             self.model.load_state_dict(torch.load(os.path.join(load_path, "trained_model.pth")))
             self.model.eval()
 
@@ -259,9 +320,9 @@ class implant_tumor(MapTransform):
         # if proba < 0: proba = 0
         proba = 1
 
-        rs = np.random.random_sample()
-        if proba >= rs:
-            img, lbl = add_tumor_to_slice(img, lbl, self.t_type, self.model, self.latent_size, self.tumor_shape, self.tumor_dl)#, self.device)
+        #rs = np.random.random_sample()
+        if proba >= 0:
+            img, lbl = add_tumor_to_slice(img, lbl, self.t_type, self.model, self.latent_size, self.tumor_shape)#, self.device)
 
         d['image'] = img
         d['label'] = lbl
