@@ -22,9 +22,13 @@ def calc_dice(pred, gt, show_print=False):
 
 def check_model_output(save_path, model, dice_metric, data_loader, device, num_test_files):
     model_path = os.path.join(save_path, "best_metric_model.pth")
-    #model_path = os.path.join(save_path, "epoch-3-model.pth")
+    # model_path = os.path.join(save_path, "epoch-15-model.pth")
     model.load_state_dict(torch.load(model_path))
     model.eval()
+
+    post_pred = Compose([AsDiscrete(argmax=True, to_onehot=3)])
+    post_label = Compose([AsDiscrete(to_onehot=3)])
+
     tumors_detected = np.empty((0,2), float)
     avg_size_v_tumor_dice = np.empty((0,2), float)
     with torch.no_grad():
@@ -49,9 +53,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             # plt.show()
             # plt.pause(1)
 
-            test_outputs = predict_segmentation(test_outputs, mutually_exclusive=True) # .detach().cpu()
-
-            one_hot_out = one_hot(test_outputs, num_classes=3, dim=1)
+            #plot_test_outputs = predict_segmentation(test_outputs, mutually_exclusive=True) # .detach().cpu()
+            # one_hot_out = one_hot(ps_test_outputs, num_classes=3, dim=1)
 
             # plt.subplot(2, 3, 4)
             # plt.imshow(one_hot_out[0,0,:,:].detach().cpu())
@@ -61,7 +64,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             # plt.imshow(one_hot_out[0,2,:,:].detach().cpu())
 
             #find overall dice score between truth and predicted
-            one_hot_labels = one_hot(test_labels, num_classes=3, dim=1)
+            # one_hot_labels = one_hot(test_labels, num_classes=3, dim=1)
 
             # plt.subplot(2, 3, 1)
             # plt.imshow(one_hot_labels[0,0,:,:].detach().cpu())
@@ -72,7 +75,12 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             # plt.show()
             # plt.pause(1)
 
-            dice_metric(y_pred=one_hot_out, y=one_hot_labels)
+            plot_test_outputs = torch.argmax(test_outputs, dim=1)
+
+            one_hot_test_outputs = [post_pred(i) for i in decollate_batch(test_outputs)]
+            one_hot_labels = [post_label(i) for i in decollate_batch(test_labels)]
+
+            dice_metric(y_pred=one_hot_test_outputs, y=one_hot_labels)
 
             x = dice_metric.get_buffer() #just has the dice values so we print it in plot
             x = x[-running_batch_size:]
@@ -84,29 +92,29 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                 tumors = test_labels[b_item,0,:,:].cpu()
                 tumors[tumors == 1] = 0
                 gt_seperated_tumor_labels, gt_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
-                tumors = test_outputs[b_item,0,:,:].cpu()
-                tumors[tumors == 1] = 0
-                pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
+                # tumors = test_outputs[b_item,0,:,:].cpu()
+                # tumors[tumors == 1] = 0
+                # pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
 
-                #save  avg tumor size and dice prediction of slice
-                gt_avg_tumor_size = np.sum(gt_seperated_tumor_labels > 0) / gt_num_regions
-                avg_size_v_tumor_dice = np.append(avg_size_v_tumor_dice, [[gt_avg_tumor_size, x[b_item][1].item()]], axis = 0)
+                # #save  avg tumor size and dice prediction of slice
+                # gt_avg_tumor_size = np.sum(gt_seperated_tumor_labels > 0) / gt_num_regions
+                # avg_size_v_tumor_dice = np.append(avg_size_v_tumor_dice, [[gt_avg_tumor_size, x[b_item][1].item()]], axis = 0)
 
-                #for each tumor find the dice score against each tumor lbl in prediction
-                for gt_num in range(gt_num_regions):   
-                    individual_tumor_dice = np.array([])
-                    for pred_num in range(pred_num_regions):
-                        gt = np.where(gt_seperated_tumor_labels == gt_num+1, gt_seperated_tumor_labels, 0)
-                        pred = np.where(pred_seperated_tumor_labels == pred_num+1, pred_seperated_tumor_labels, 0)
-                        individual_tumor_dice = np.append(individual_tumor_dice, calc_dice(gt = gt, pred = pred))
+                # #for each tumor find the dice score against each tumor lbl in prediction
+                # for gt_num in range(gt_num_regions):   
+                #     individual_tumor_dice = np.array([])
+                #     for pred_num in range(pred_num_regions):
+                #         gt = np.where(gt_seperated_tumor_labels == gt_num+1, gt_seperated_tumor_labels, 0)
+                #         pred = np.where(pred_seperated_tumor_labels == pred_num+1, pred_seperated_tumor_labels, 0)
+                #         individual_tumor_dice = np.append(individual_tumor_dice, calc_dice(gt = gt, pred = pred))
                     
-                    gt_tumor_size = np.sum(gt_seperated_tumor_labels == gt_num+1)
+                #     gt_tumor_size = np.sum(gt_seperated_tumor_labels == gt_num+1)
             
-                    # save a structure containing tumor sizes and if they were detected or not
-                    if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
-                        tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 1]], axis=0)
-                    else:
-                        tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 0]], axis=0)
+                #     # save a structure containing tumor sizes and if they were detected or not
+                #     if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
+                #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 1]], axis=0)
+                #     else:
+                #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 0]], axis=0)
 
                 #plot 20 slices from range of files
                 if test_file_counter in np.linspace(0, num_test_files, 20, dtype=int):
@@ -126,7 +134,7 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     plt.subplot(1, 3, 3)
                     plt.axis('off')
                     plt.title(f"prediction")
-                    plt.imshow(test_outputs[b_item,0,:,:].detach().cpu(), vmin=0, vmax=2)
+                    plt.imshow(plot_test_outputs[b_item,:,:].detach().cpu(), vmin=0, vmax=2)
 
                     fpath = test_data['image_meta_dict']['filename_or_obj'][b_item]
                     fpath = fpath[fpath.rfind("/")+1:-4] 
@@ -245,8 +253,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 
-# # # #save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-standard"
+# # save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-VAE"
 # num_workers = 4
 # batch_size = 16 
 

@@ -67,6 +67,9 @@ def training_loop(model,
     epoch_loss_values = []
     metric_values = []
 
+    post_pred = Compose([AsDiscrete(argmax=True, to_onehot=3)])
+    post_label = Compose([AsDiscrete(to_onehot=3)])
+
     for epoch in range(max_epochs):
         print("-" * 10)
         print(f"epoch {epoch + 1}/{max_epochs}")
@@ -85,19 +88,46 @@ def training_loop(model,
             outputs = model(inputs)
 
             # plt.figure("Training data", (18, 6))
-            # plt.subplot(1,4,1)
-            # plt.axis('off')
+            # plt.subplot(2,4,1)
             # plt.imshow(outputs[0,0,:,:].detach().cpu(), cmap="gray")
-            # plt.subplot(1,4,2)
-            # plt.axis('off')
+
+            # plt.subplot(2,4,2)
             # plt.imshow(outputs[0,1,:,:].detach().cpu(), cmap="gray")
-            # plt.subplot(1,4,3)
-            # plt.axis('off')
+
+            # plt.subplot(2,4,3)
             # plt.imshow(outputs[0,2,:,:].detach().cpu(), cmap="gray")
 
-            # plt.subplot(1,4,4)
-            # plt.axis('off')
-            # plt.imshow(labels[0,0,:,:].detach().cpu(), vmin =0, vmax =2)
+            # outputs = predict_segmentation(outputs, mutually_exclusive=True)
+
+            # plt.subplot(2,4,4)
+            # plt.imshow(outputs[0,0,:,:].detach().cpu(), cmap="gray")
+            
+            # outputs = one_hot(outputs, num_classes=3, dim=1)
+
+            # plt.figure("Training data", (18, 6))
+            # plt.subplot(2,4,5)
+            # plt.imshow(outputs[0,0,:,:].detach().cpu(), cmap="gray")
+
+            # plt.subplot(2,4,6)
+            # plt.imshow(outputs[0,1,:,:].detach().cpu(), cmap="gray")
+
+            # plt.subplot(2,4,7)
+            # plt.imshow(outputs[0,2,:,:].detach().cpu(), cmap="gray")
+
+            # plt.show()
+            # plt.pause(1)
+
+            labels = one_hot(labels, num_classes=3, dim=1)
+
+            # plt.figure("Training data", (18, 6))
+            # plt.subplot(2,4,5)
+            # plt.imshow(labels[0,0,:,:].detach().cpu(), cmap="gray")
+
+            # plt.subplot(2,4,6)
+            # plt.imshow(labels[0,1,:,:].detach().cpu(), cmap="gray")
+
+            # plt.subplot(2,4,7)
+            # plt.imshow(labels[0,2,:,:].detach().cpu(), cmap="gray")
 
             # plt.show()
             # plt.pause(1)
@@ -124,10 +154,42 @@ def training_loop(model,
                         val_data["label"].to(device),
                     )
                     val_outputs = model(val_inputs)
-                    val_outputs = predict_segmentation(val_outputs, mutually_exclusive=True)
-                    val_outputs = one_hot(val_outputs, num_classes=3, dim=1)
 
-                    val_labels = one_hot(val_labels, num_classes=3, dim=1)
+                    val_outputs = [post_pred(i) for i in decollate_batch(val_outputs)]
+                    val_labels = [post_label(i) for i in decollate_batch(val_labels)]
+
+                    # plt.figure("Training data", (18, 6))
+                    # plt.subplot(2,4,1)
+                    # plt.imshow(val_outputs[0,0,:,:].detach().cpu(), cmap="gray")
+
+                    # plt.subplot(2,4,2)
+                    # plt.imshow(val_outputs[0,1,:,:].detach().cpu(), cmap="gray")
+
+                    # plt.subplot(2,4,3)
+                    # plt.imshow(val_outputs[0,2,:,:].detach().cpu(), cmap="gray")
+
+
+                    # val_outputs = predict_segmentation(val_outputs, mutually_exclusive=True)
+                    
+                    # plt.subplot(2,4,4)
+                    # plt.imshow(val_outputs[0,0,:,:].detach().cpu(), cmap="gray")
+                    
+                    #val_outputs = one_hot(val_outputs, num_classes=3, dim=1)
+
+                    # plt.figure("Training data", (18, 6))
+                    # plt.subplot(2,4,5)
+                    # plt.imshow(val_outputs[0,0,:,:].detach().cpu(), cmap="gray")
+
+                    # plt.subplot(2,4,6)
+                    # plt.imshow(val_outputs[0,1,:,:].detach().cpu(), cmap="gray")
+
+                    # plt.subplot(2,4,7)
+                    # plt.imshow(val_outputs[0,2,:,:].detach().cpu(), cmap="gray")
+
+                    # plt.show()
+                    # plt.pause(1)
+
+                    #val_labels = one_hot(val_labels, num_classes=3, dim=1)
                     dice_metric(y_pred=val_outputs, y=val_labels)
 
                 # aggregate the final mean dice result

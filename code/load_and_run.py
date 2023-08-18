@@ -23,7 +23,7 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
         print(save_path, " Folder already exists. Quitting...")
         return None
 
-    num_workers = 8
+    num_workers = 4
     batch_size = 16
     learning_rate = 1e-3
     scheduler_gamma = 0.9
@@ -81,7 +81,7 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
         norm=Norm.BATCH,
     ).to(device)
     
-    loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+    loss_function = DiceLoss(softmax=True) #to_onehot_y=True, 
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     scheduler = StepLR(optimizer, step_size = scheduler_step_size, gamma=scheduler_gamma)     #ReduceLROnPlateau 
     dice_metric = DiceMetric(include_background=False, reduction="mean")
