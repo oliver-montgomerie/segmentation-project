@@ -127,6 +127,11 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size): #, device):
             tumor_img = tumor_img[0,:,:,:]
             tumor_lbl = tumor_lbl[0,:,:,:].int()
 
+        if torch.max(tumor_img) < 0.25: #sometimes just generates darkness... 
+            continue
+        new_t_size = (len(torch.argwhere(tumor_lbl == 1)) * 0.793*0.793)
+        if new_t_size < min_tumor_size:
+            continue
         # plt.figure("New tumour", (18, 6))
         # plt.subplot(1,2,1)
         # plt.imshow(tumor_img.detach().cpu().numpy()[0,:, :], cmap="gray", vmin=0, vmax=1)
@@ -161,18 +166,17 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size): #, device):
         tumor_img = torch.roll(tumor_img, a, dims=1)
         tumor_img = torch.roll(tumor_img, b, dims=2)
 
-        tumor_lbl[tumor_lbl==1] = 3
         # add tumor label to img label. if there are lots of 3's then it means outside liver
         # if lots of 4's then it was inside the liver
         # 5 means on- top of another tumor, which is also ok
+        tumor_lbl[tumor_lbl==1] = 3
         gen_lbl = lbl + tumor_lbl
 
-        # todo: check if this returns the right length or *2 because 2d
         not_liver = len(torch.argwhere(gen_lbl == 3))
         in_liver = len(torch.argwhere(gen_lbl > 3))
 
         #print(f"in_liver ratio: {in_liver / (in_liver + not_liver)}")
-        if in_liver / (in_liver + not_liver) > 0.95:
+        if in_liver / (in_liver + not_liver + 1e-6) > 0.95:
             good_placement = True
             break #good
 
@@ -182,8 +186,6 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size): #, device):
         return img, lbl 
         
     ## merge images
-    #todo: sort this shit
-
     sobel_h = torch.from_numpy(ndimage.sobel(tumor_lbl[0,:,:], 0) ) # horizontal gradient
     sobel_v = torch.from_numpy(ndimage.sobel(tumor_lbl[0,:,:], 1) ) # vertical gradient
     tumor_edges = torch.sqrt(sobel_h**2 + sobel_v**2)
@@ -195,12 +197,14 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size): #, device):
     dists, _ = torch.min(torch.cdist(lbl_locations, edge_locations), dim=1)
 
     distmap = torch.zeros(list(tumor_lbl.size()))
-    distmap[tumor_lbl >= 3] = torch.add(dists, 1)
-
-    #distmap[distmap < 3] = distmap[distmap < 3] / (1.2*torch.max(distmap) )
-    distmap[distmap < 3] = tumor_img[distmap < 3]
-    distmap[distmap >= 3] = 1
-    distmap = torch.square(distmap)
+    distmap[tumor_lbl >= 3] = dists
+    distmap[distmap < 2] = tumor_img[distmap < 2]
+    distmap[distmap >= 2] = 1
+    krnl = torch.tensor([[1/16, 1/8, 1/16],   #3x3 gauss kernel
+                [1/8, 1/4, 1/8],
+                [1/16, 1/8, 1/16]])
+    distmap = F.conv2d(distmap, krnl.reshape(1,1,*krnl.shape), padding='same')
+    #distmap = torch.square(distmap)
 
     gen_img = img.detach().clone() 
 
@@ -208,68 +212,118 @@ def add_tumor_to_slice(img, lbl, t_type, model, latent_size): #, device):
     gen_img[tumor_lbl >= 3] = ((distmap*tumor_img)[tumor_lbl >= 3]) + ((1-distmap)*img)[tumor_lbl >= 3]
 
 
-    # ### plots
-    buffer = 5
-    rows = torch.any(tumor_lbl, axis=2)
-    cols = torch.any(tumor_lbl, axis=1)
-    ymin, ymax = torch.where(rows)[1][[0, -1]] 
-    xmin, xmax = torch.where(cols)[1][[0, -1]] 
-    ymin = ymin - buffer
-    ymax = ymax + buffer
-    xmin = xmin - buffer
-    xmax = xmax + buffer
+    # # ### plots
+    # buffer = 5
+    # rows = torch.any(tumor_lbl, axis=2)
+    # cols = torch.any(tumor_lbl, axis=1)
+    # ymin, ymax = torch.where(rows)[1][[0, -1]] 
+    # xmin, xmax = torch.where(cols)[1][[0, -1]] 
+    # ymin = ymin - buffer
+    # ymax = ymax + buffer
+    # xmin = xmin - buffer
+    # xmax = xmax + buffer
 
     # plt.figure("New tumour", (18, 6))
-    # plt.subplot(1,2,1)
+    # plt.subplot(1,3,1)
     # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
     # plt.title("Tumour")
     # plt.axis('off')
 
-    # plt.subplot(1,2,2)
-    # plt.imshow(distmap.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Distance Map")
+    # plt.subplot(1,3,2)
+    # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Label")
     # plt.axis('off')
 
+    # plt.subplot(1,3,3)
+    # plt.imshow(distmap.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Weighting")
+    # plt.axis('off')
+
+    # # plt.savefig(os.path.join("/home/omo23/Documents/segmentation-project", "new_tumor.png"), bbox_inches='tight')
+    # # plt.close()
+
     # plt.show()
-    # plt.pause(1)
+    # #plt.pause(1)
 
-    buffer = 5
-    rows = torch.any(lbl, axis=2)
-    cols = torch.any(lbl, axis=1)
-    ymin, ymax = torch.where(rows)[1][[0, -1]] 
-    xmin, xmax = torch.where(cols)[1][[0, -1]] 
-    ymin = ymin - buffer
-    ymax = ymax + buffer
-    xmin = xmin - buffer
-    xmax = xmax + buffer
+    # buffer = 5
+    # rows = torch.any(lbl, axis=2)
+    # cols = torch.any(lbl, axis=1)
+    # ymin, ymax = torch.where(rows)[1][[0, -1]] 
+    # xmin, xmax = torch.where(cols)[1][[0, -1]] 
+    # ymin = ymin - buffer
+    # ymax = ymax + buffer
+    # xmin = xmin - buffer
+    # xmax = xmax + buffer
 
-    # plt.figure("New tumor", (18, 6))
-    # plt.subplot(2,3,1)
+    # plt.figure("New tumour", (18, 6))
+    # plt.subplot(2,2,1)
     # plt.imshow(img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
     # plt.title("Original")
     # plt.axis('off')
-    # plt.subplot(2,3,4)
+    # plt.subplot(2,2,3)
     # plt.imshow(lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
     # plt.axis('off')
 
-    # plt.subplot(2,3,2)
-    # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.axis('off')
-    # plt.title("New tumor")
-    # plt.subplot(2,3,5)
-    # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
-    # plt.axis('off')
+    # # plt.subplot(2,3,2)
+    # # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # # plt.axis('off')
+    # # plt.title("New tumor")
+    # # plt.subplot(2,3,5)
+    # # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # # plt.axis('off')
 
-    # plt.subplot(2,3,3)
+    # plt.subplot(2,2,2)
     # plt.imshow(gen_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
-    # plt.title("Implanted tumor")
+    # plt.title("Implanted tumour")
     # plt.axis('off')
-    # plt.subplot(2,3,6)
+    # plt.subplot(2,2,4)
     # plt.imshow(gen_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
     # plt.axis('off')
 
     # plt.show()
-    # plt.pause(1)
+    # #plt.pause(1)
+
+    # view_tumor = gen_lbl.detach().clone()
+    # view_tumor[view_tumor<3] = 0
+
+    # buffer = 15
+    # rows = torch.any(view_tumor, axis=2)
+    # cols = torch.any(view_tumor, axis=1)
+    # ymin, ymax = torch.where(rows)[1][[0, -1]] 
+    # xmin, xmax = torch.where(cols)[1][[0, -1]] 
+    # ymin = ymin - buffer
+    # ymax = ymax + buffer
+    # xmin = xmin - buffer
+    # xmax = xmax + buffer
+
+    # plt.figure("New tumour", (18, 6))
+    # plt.subplot(2,2,1)
+    # plt.imshow(img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Original")
+    # plt.axis('off')
+    # plt.subplot(2,2,3)
+    # plt.imshow(lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # plt.axis('off')
+
+    # # plt.subplot(2,3,2)
+    # # plt.imshow(tumor_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # # plt.axis('off')
+    # # plt.title("New tumor")
+    # # plt.subplot(2,3,5)
+    # # plt.imshow(tumor_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # # plt.axis('off')
+
+    # plt.subplot(2,2,2)
+    # plt.imshow(gen_img.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], cmap="gray", vmin=0, vmax=1)
+    # plt.title("Implanted tumour")
+    # plt.axis('off')
+    # plt.subplot(2,2,4)
+    # plt.imshow(gen_lbl.detach().cpu().numpy()[0,ymin:ymax, xmin:xmax], vmin=0, vmax=5)
+    # plt.axis('off')
+
+    # plt.show()
+    # #plt.pause(1)
+
 
     gen_lbl[gen_lbl >= 3] = 2 
 

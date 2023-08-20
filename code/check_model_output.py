@@ -22,7 +22,7 @@ def calc_dice(pred, gt, show_print=False):
 
 def check_model_output(save_path, model, dice_metric, data_loader, device, num_test_files):
     model_path = os.path.join(save_path, "best_metric_model.pth")
-    # model_path = os.path.join(save_path, "epoch-15-model.pth")
+    #model_path = os.path.join(save_path, "epoch-10-model.pth")
     model.load_state_dict(torch.load(model_path))
     model.eval()
 
@@ -31,6 +31,9 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
     tumors_detected = np.empty((0,2), float)
     avg_size_v_tumor_dice = np.empty((0,2), float)
+
+    saved_fnums = []
+
     with torch.no_grad():
         for i, test_data in enumerate(data_loader):
             test_inputs, test_labels = (
@@ -86,39 +89,45 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
             x = x[-running_batch_size:]
             
             for b_item in range(running_batch_size):
+                fpath = test_data['image_meta_dict']['filename_or_obj'][b_item]
+                fpath = fpath[fpath.rfind("/")+1:-4] 
+                fnum = fpath[0:fpath.rfind("-")]
                 test_file_counter = (i * running_batch_size) + b_item
+                if (test_file_counter in torch.linspace(0, num_test_files, 20, dtype=int)) or (fnum not in saved_fnums):
+                    tumors = test_labels[b_item,0,:,:]
+                    tumor_pixels = torch.sum(tumors[tumors==2],dtype=int).item()
+                    #split into seperate tumor instances
+                    # tumors = test_labels[b_item,0,:,:].cpu()
+                    # tumors[tumors == 1] = 0
+                    # gt_seperated_tumor_labels, gt_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
+                    # tumors = test_outputs[b_item,0,:,:].cpu()
+                    # tumors[tumors == 1] = 0
+                    # pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
 
-                #split into seperate tumor instances
-                tumors = test_labels[b_item,0,:,:].cpu()
-                tumors[tumors == 1] = 0
-                gt_seperated_tumor_labels, gt_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
-                # tumors = test_outputs[b_item,0,:,:].cpu()
-                # tumors[tumors == 1] = 0
-                # pred_seperated_tumor_labels, pred_num_regions = seperate_instances(label_image = tumors, background=0, return_num=True, connectivity=None)
+                    # #save  avg tumor size and dice prediction of slice
+                    # gt_avg_tumor_size = np.sum(gt_seperated_tumor_labels > 0) / gt_num_regions
+                    # avg_size_v_tumor_dice = np.append(avg_size_v_tumor_dice, [[gt_avg_tumor_size, x[b_item][1].item()]], axis = 0)
 
-                # #save  avg tumor size and dice prediction of slice
-                # gt_avg_tumor_size = np.sum(gt_seperated_tumor_labels > 0) / gt_num_regions
-                # avg_size_v_tumor_dice = np.append(avg_size_v_tumor_dice, [[gt_avg_tumor_size, x[b_item][1].item()]], axis = 0)
+                    # #for each tumor find the dice score against each tumor lbl in prediction
+                    # for gt_num in range(gt_num_regions):   
+                    #     individual_tumor_dice = np.array([])
+                    #     for pred_num in range(pred_num_regions):
+                    #         gt = np.where(gt_seperated_tumor_labels == gt_num+1, gt_seperated_tumor_labels, 0)
+                    #         pred = np.where(pred_seperated_tumor_labels == pred_num+1, pred_seperated_tumor_labels, 0)
+                    #         individual_tumor_dice = np.append(individual_tumor_dice, calc_dice(gt = gt, pred = pred))
+                        
+                    #     gt_tumor_size = np.sum(gt_seperated_tumor_labels == gt_num+1)
+                
+                    #     # save a structure containing tumor sizes and if they were detected or not
+                    #     if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
+                    #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 1]], axis=0)
+                    #     else:
+                    #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 0]], axis=0)
 
-                # #for each tumor find the dice score against each tumor lbl in prediction
-                # for gt_num in range(gt_num_regions):   
-                #     individual_tumor_dice = np.array([])
-                #     for pred_num in range(pred_num_regions):
-                #         gt = np.where(gt_seperated_tumor_labels == gt_num+1, gt_seperated_tumor_labels, 0)
-                #         pred = np.where(pred_seperated_tumor_labels == pred_num+1, pred_seperated_tumor_labels, 0)
-                #         individual_tumor_dice = np.append(individual_tumor_dice, calc_dice(gt = gt, pred = pred))
-                    
-                #     gt_tumor_size = np.sum(gt_seperated_tumor_labels == gt_num+1)
-            
-                #     # save a structure containing tumor sizes and if they were detected or not
-                #     if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
-                #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 1]], axis=0)
-                #     else:
-                #         tumors_detected = np.append(tumors_detected, [[gt_tumor_size, 0]], axis=0)
 
-                #plot 20 slices from range of files
-                if test_file_counter in np.linspace(0, num_test_files, 20, dtype=int):
-                    txt = "Liver dice: " + str(round(x[b_item][0].item(),3)) + ", Tumor dice: "+ str(round(x[b_item][1].item(),3)) + "\nTumor pixels: " + str(np.sum(gt_seperated_tumor_labels > 0))
+                    ###plot 20 slices from range of files
+                    txt = "Liver dice: " + str(round(x[b_item][0].item(),3)) + ", Tumor dice: "+ str(round(x[b_item][1].item(),3)) + "\nTumor pixels: " \
+                        + str(tumor_pixels) #str(np.sum(gt_seperated_tumor_labels > 0))
                     plt.figure("Comparison", (18, 6))
                     plt.suptitle(txt)       
                     plt.subplot(1, 3, 1)
@@ -143,6 +152,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
                     plt.close()
                     # plt.show()
                     # plt.pause(1)
+
+                    saved_fnums.append(fnum)
 
         print(f"{i}/{len(data_loader)}")
         
@@ -254,9 +265,9 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 
 
 # # save_path="/home/omo23/Documents/segmentation-project/saved-tests/test"
-# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-VAE"
-# num_workers = 4
-# batch_size = 16 
+# save_path = "/home/omo23/Documents/segmentation-project/saved-tests/0-100-standard"
+# num_workers = 8
+# batch_size = 8 
 
 # #Data loading
 # data_dir = "/home/omo23/Documents/sliced-data"
@@ -274,8 +285,8 @@ def check_model_output(save_path, model, dice_metric, data_loader, device, num_t
 #     if d_num in test_files_nums:
 #         test_files.append(d)
 
-# ## sort test files smallest to largest tumor
-# test_files = sorted(test_files, key=lambda file: file_tumor_size(file))
+# ## sort test files large to small tumor
+# test_files = sorted(test_files, key=lambda file: file_tumor_size(file), reverse=True)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

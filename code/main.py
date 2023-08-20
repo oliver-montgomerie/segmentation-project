@@ -9,6 +9,8 @@ from load_and_run import load_and_run
 ### Need to run for tumors on empty slices
 
 
+#try no sigmoid or softmax on loss function?
+
 if __name__ == '__main__':
     from transforms import train_transforms, val_transforms, noise_elastic_train_transforms
     from transforms import RT_train_transforms, aug_RT_train_transforms
@@ -51,7 +53,21 @@ if __name__ == '__main__':
                     number_of_epochs = max_epochs,
                     train_transforms = noise_elastic_train_transforms,
                     val_transforms = val_transforms)
+
+
+        ## Real tumour inserted
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-REAL",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = RT_train_transforms,
+                    val_transforms = val_transforms)
             
+            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-REAL",
+                    percentage_of_data = f,
+                    number_of_epochs = max_epochs,
+                    train_transforms = aug_RT_train_transforms,
+                    val_transforms = val_transforms)
+
 
         ## VAE 
             load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-VAE",
@@ -79,20 +95,6 @@ if __name__ == '__main__':
                     percentage_of_data = f,
                     number_of_epochs = max_epochs,
                     train_transforms = aug_VAE_GAN_train_transforms,
-                    val_transforms = val_transforms)
-
-
-        ## Real tumour inserted
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-REAL",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = RT_train_transforms,
-                    val_transforms = val_transforms)
-            
-            load_and_run(save_path = save_path + str(run_attempt) + "-" + str(f) +"-augmented"+"-REAL",
-                    percentage_of_data = f,
-                    number_of_epochs = max_epochs,
-                    train_transforms = aug_RT_train_transforms,
                     val_transforms = val_transforms)
 
 

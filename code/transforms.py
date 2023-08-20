@@ -157,8 +157,9 @@ class plot_temps(MapTransform):
         amount_of_plots = len(files)
         plt.figure("Data loader steps", (12, 6))
         plt.suptitle("Data loader steps")
+        plt.tight_layout()
 
-        num_rows = -(amount_of_plots // -3)     #this is like ceil(a/b)
+        num_rows = -(amount_of_plots // -4)     #this is like ceil(a/b)
         num_cols = -(amount_of_plots // -num_rows)
 
         for i, f in enumerate(files):
@@ -169,8 +170,10 @@ class plot_temps(MapTransform):
             plt.title(f[:-4])
             #plt.axis('off')
 
-        plt.show()
-        #shutil.rmtree(self.path)
+        #plt.show()
+        plt.savefig(os.path.join("/home/omo23/Documents/segmentation-project", "dataloading.png"), bbox_inches='tight')
+        plt.close()
+        shutil.rmtree(self.path)
         return d
 
 
@@ -185,6 +188,8 @@ deform_check = Rand2DElasticd(
     scale_range=(-0.2, 0.2),
     padding_mode="zeros",
 )
+
+
 
 #for viewing how the transforms look
 check_temp_path = "/home/omo23/Documents/segmentation-project"
@@ -211,8 +216,13 @@ check_transforms = Compose(
         temps_save(3, check_temp_path),
 
         Spacingd(keys=["image", "label"], pixdim=(0.793, 0.793), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [576,576]),
+        ResizeWithPadOrCropd(keys=["image", "label"], spatial_size = [640,640]),
         temps_save(4, check_temp_path),
+
+        #implant_tumor(keys = ["image", "label"], t_type = "REAL", load_path = ""),
+        #implant_tumor(keys = ["image", "label"], t_type = "VAE", load_path = "/home/omo23/Documents/generative-models/VAE-models/latent-5-epochs-20"),
+        implant_tumor(keys = ["image", "label"], t_type = "VAE_GAN", load_path = "/home/omo23/Documents/generative-models/VAE-GAN-models/latent-5-epochs-30"),
+        temps_save(5, check_temp_path),
 
         deform_check,
         temps_save(6, check_temp_path),

@@ -81,8 +81,9 @@ import numpy as np
 
 # print(np.random.randint(0, 3, 5))
 
-x = np.array([[1,3],[5,7],[10,12]])
-print(np.mean(x,axis=1))
+x = [1,2,3,4,5,6,7,8]
+
+print(x[0::2])
 
 # if 1 in np.where(0.5 < individual_tumor_dice, 1, 0):
 #                         tumors_detected.append(1)

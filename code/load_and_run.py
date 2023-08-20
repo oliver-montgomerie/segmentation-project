@@ -23,11 +23,11 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
         print(save_path, " Folder already exists. Quitting...")
         return None
 
-    num_workers = 4
-    batch_size = 16
+    num_workers = 16
+    batch_size = 32
     learning_rate = 1e-3
     scheduler_gamma = 0.9
-    scheduler_step_size = 5
+    scheduler_step_size = 3
 
     #Data loading
     data_dir = "/home/omo23/Documents/sliced-data"
@@ -58,6 +58,9 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
     print("Number of train files:", len(run_train_files_nums), "Number of val files:", len(val_files_nums), "Number of test files:", len(test_files_nums))
     print("Number of train slices:", len(train_files), "Number of val slices:", len(val_files), "Number of test slices:", len(test_files))
 
+    ## sort test files largest to smallest tumor
+    test_files = sorted(test_files, key=lambda file: file_tumor_size(file), reverse=True)
+
     ###datasets
     train_ds = CacheDataset(data=train_files, transform=train_transforms, cache_rate=1.0, num_workers=num_workers) # 0.5
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=num_workers)
@@ -81,7 +84,7 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
         norm=Norm.BATCH,
     ).to(device)
     
-    loss_function = DiceLoss(softmax=True) #to_onehot_y=True, 
+    loss_function = DiceLoss(sigmoid=True) 
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     scheduler = StepLR(optimizer, step_size = scheduler_step_size, gamma=scheduler_gamma)     #ReduceLROnPlateau 
     dice_metric = DiceMetric(include_background=False, reduction="mean")
@@ -124,8 +127,8 @@ def load_and_run(save_path = "", percentage_of_data = 100, number_of_epochs = 10
     
 
     ### check on test set
-    num_workers = 4
-    batch_size = 16
+    num_workers = 8
+    batch_size = 8
     from check_model_output import check_model_output
     from transforms import test_transforms
     test_ds = CacheDataset(data=test_files, transform=test_transforms, cache_rate=1.0, num_workers=num_workers)

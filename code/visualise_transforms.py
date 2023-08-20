@@ -11,19 +11,19 @@ def stuff():
     # train_labels = sorted(glob.glob(os.path.join(data_dir, "Labels", "*.nii")))
     data_dicts = [{"image": image_name, "label": label_name} for image_name, label_name in zip(all_images, all_labels)]
 
-    check_files = data_dicts[0:1]
+    check_files = data_dicts[10:15]
     # fs = np.random.randint(0, len(data_dicts), 10)
     # for f in fs:
     #     check_files.append(data_dicts[f]) 
     # print(check_files)
 
-    add_90 = False
-    for d in data_dicts:
-        d_num = d['image']
-        d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")]
-        if d_num == "40" and not add_90:
-            check_files.append(d)
-            add_90 = True
+    # add_90 = False
+    # for d in data_dicts:
+    #     d_num = d['image']
+    #     d_num = d_num[d_num.rfind("/")+1:d_num.rfind("-")]
+    #     if d_num == "40" and not add_90:
+    #         check_files.append(d)
+    #         add_90 = True
 
     #Load data transforms
     from transforms import check_transforms, load_slice_transforms
